@@ -1,0 +1,35 @@
+{
+    "spei_indices": [
+        3,
+        12
+    ],
+    "reference_scenario": "historical",
+    "spei_3_months": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+    ],
+    "projections_csv": "/home/politti/data/Danube_5min/spei_ecoregions/data/pr_et_ecoregions_1_min_formatted.csv",
+    "validation_dataset": "/home/politti/data/Danube_5min/spei_ecoregions/data/cru_water_balance_formatted.csv",
+    "spatial_unit_col": "region",
+    "spatial_units": [
+        "Alps",
+        "Dinaric Western Balkans",
+        "Pontic Province"
+    ],
+    "spei_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/ecoregions_spei.csv",
+    "ks_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/ks_test_ecoregions.csv",
+    "validation_plots_dir": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/plots/gcms_validation",
+    "dry_events_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/drought_counts/dry_events_{index}.csv",
+    "dry_events_len_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/drought_counts/dry_events_len_{index}.csv",
+    "dry_events_sev_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/drought_counts/dry_events_sev_{index}.csv",
+    "gcm_eval_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/gcm_evaluation.csv",
+    "copula_analysis_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/copula_analysis.csv",
+    "spei_threshold": -1.0,
+    "ref_start_year": 1951,
+    "ref_end_year": 2014,
+    "valid_gcms": {}
+}
