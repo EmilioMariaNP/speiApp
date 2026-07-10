@@ -16,6 +16,14 @@ def load_config(config_path="config.json"):
     with open(config_path, 'r') as f:
         return json.load(f)
 
+def dump_json_to_file(pydict, out_file, indent=4):
+    try:
+        with open(out_file, 'w') as fp:
+            json.dump(pydict, fp, indent = indent)
+        return 0
+    except:
+        raise
+
 def filter_by_overlapping_years(df_a, df_b):
     # get overlapping years and filter by
     y_max = np.amin([df_a['year'].max(), df_b['year'].max()])

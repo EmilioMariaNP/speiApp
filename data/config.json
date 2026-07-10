@@ -1,4 +1,6 @@
 {
+    "execute_spei": false,
+    "execute_ks_test": true,
     "spei_indices": [
         3,
         12
@@ -12,16 +14,19 @@
         7,
         8
     ],
-    "projections_csv": "/home/politti/data/Danube_5min/spei_ecoregions/data/pr_et_ecoregions_1_min_formatted.csv",
-    "validation_dataset": "/home/politti/data/Danube_5min/spei_ecoregions/data/cru_water_balance_formatted.csv",
-    "spatial_unit_col": "region",
+    "projections_csv": "/home/politti/data/Danube_5min/spei_nuts_2/water_balance_danube_nuts2.csv",
+    "validation_dataset": "/home/politti/data/Danube_5min/spei_nuts_2/water_balance_danube_nuts2_cru.csv",
+    "spatial_unit_col": "NUTS_ID",
     "spatial_units": [
-        "Alps",
-        "Dinaric Western Balkans",
-        "Pontic Province"
+        "AT11"
     ],
-    "spei_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/ecoregions_spei.csv",
-    "ks_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/ks_test_ecoregions.csv",
+    "spatial_units_bak": [
+        "AT11",
+        "SK04",
+        "RO12"
+    ],
+    "spei_csv": "/home/politti/data/Danube_5min/spei_nuts_2/nuts_2_spei.csv",
+    "ks_csv": "/home/politti/data/Danube_5min/spei_nuts_2/ks_test_nuts_2.csv",
     "validation_plots_dir": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/plots/gcms_validation",
     "dry_events_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/drought_counts/dry_events_{index}.csv",
     "dry_events_len_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/drought_counts/dry_events_len_{index}.csv",
@@ -31,5 +36,88 @@
     "spei_threshold": -1.0,
     "ref_start_year": 1951,
     "ref_end_year": 2014,
-    "valid_gcms": {}
+    "proj_start_year": 2030,
+    "proj_end_year": 2100,
+    "valid_gcms": [
+        {
+            "NUTS_ID": "AT11",
+            "gcm": "GFDL-ESM4",
+            "spei": "spei3",
+            "ks-test": 0.174,
+            "p-value": 0.4668,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "AT11",
+            "gcm": "MPI-ESM1-2-HR",
+            "spei": "spei3",
+            "ks-test": 0.116,
+            "p-value": 0.908,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "AT11",
+            "gcm": "MRI-ESM2-0",
+            "spei": "spei3",
+            "ks-test": 0.188,
+            "p-value": 0.2623,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "AT11",
+            "gcm": "IPSL-CM6A-LR",
+            "spei": "spei3",
+            "ks-test": 0.175,
+            "p-value": 0.3502,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "AT11",
+            "gcm": "UKESM1-0-LL",
+            "spei": "spei3",
+            "ks-test": 0.732,
+            "p-value": 0.0,
+            "passed": false
+        },
+        {
+            "NUTS_ID": "AT11",
+            "gcm": "GFDL-ESM4",
+            "spei": "spei12",
+            "ks-test": 0.417,
+            "p-value": 0.2558,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "AT11",
+            "gcm": "MPI-ESM1-2-HR",
+            "spei": "spei12",
+            "ks-test": 0.333,
+            "p-value": 0.5361,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "AT11",
+            "gcm": "MRI-ESM2-0",
+            "spei": "spei12",
+            "ks-test": 0.25,
+            "p-value": 0.869,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "AT11",
+            "gcm": "IPSL-CM6A-LR",
+            "spei": "spei12",
+            "ks-test": 0.5,
+            "p-value": 0.0995,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "AT11",
+            "gcm": "UKESM1-0-LL",
+            "spei": "spei12",
+            "ks-test": 0.333,
+            "p-value": 0.5361,
+            "passed": true
+        }
+    ]
 }
