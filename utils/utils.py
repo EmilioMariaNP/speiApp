@@ -32,6 +32,11 @@ def save_dataframe(df, csv_file):
     logger.info(f"Successfully saved dataframe to {csv_file}")
     return 0
 
+def load_dataframe(csv_file):
+    df = pd.read_csv(csv_file)
+    logger.info(f"{csv_file} loaded")
+    return df
+
 def merge_dataframes(df_list, group_cols, how='inner'):
     if group_cols is None:
         group_cols = ['date', 'region', 'scenario', 'gcm', 'water_balance']
