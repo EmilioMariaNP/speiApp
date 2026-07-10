@@ -60,17 +60,19 @@ def main_gcms_eval(config):
 
     results = []
 
+    spei_threshold = float(config.get('spei_threshold', -1))
+
     for su in target_sus:
         df_val_su = df_val[df_val[spatial_unit_col] == su].sort_values('date')
         for spei_col in spei_cols:
-            val_spei_n = round(df_val_su[df_val_su[spei_col]<0][spei_col], 1)
+            val_spei_n = round(df_val_su[df_val_su[spei_col]<=spei_threshold][spei_col], 1)
             for gcm in gcms:
                 logger.info(f'Processing {su}-{gcm}-{spei_col}...')
                 df_hist_su_gcm = df_hist[(df_hist[spatial_unit_col] == su) &
                                          (df_hist['gcm'] == gcm)
                 ].sort_values('date')
 
-                gcm_spei_n = round(df_hist_su_gcm[df_hist_su_gcm[spei_col]<0][spei_col], 1)
+                gcm_spei_n = round(df_hist_su_gcm[df_hist_su_gcm[spei_col]<=spei_threshold][spei_col], 1)
 
                 stat, p, is_same = compare_distributions_ks(gcm_spei_n, val_spei_n)
                 logger.info(f"{su}-{gcm}-{spei_col} -> Stat: {stat:.4f}, p-value: {p:.4f}, Same Dist: {is_same}")

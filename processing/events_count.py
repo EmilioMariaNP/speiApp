@@ -70,21 +70,13 @@ def events_count_main(config):
     
     for scale in spei_indices:
         spei_col = f"spei{scale}"
-        valid_col = f"spei{scale}_valid"
         
         logger.info(f"Processing Events for Index: {spei_col}")
         if spei_col not in df.columns:
             logger.warning(f"{spei_col} column not found in input data. Skipping.")
             continue
-            
-        # 1. Restrict events entirely to Valid GCM/Scenarios using Stage 2 ks-test validations
-        if valid_col in df.columns:
-            # We filter for rows evaluated as specifically True. 
-            scale_df = df[df[valid_col] == True].copy()
-            logger.info(f"Filtered {len(df) - len(scale_df)} rows based on valid GCM constraint for {spei_col}.")
-        else:
-            logger.warning(f"Validation marker column {valid_col} not found! Extracting broadly.")
-            scale_df = df.copy()
+
+        scale_df = df.copy()
             
         scale_df = scale_df.dropna(subset=[spei_col])
         if scale_df.empty:
@@ -99,10 +91,7 @@ def events_count_main(config):
         counts_records = []
         durations_records = []
         severities_records = []
-        
-        # Assume missing labels implicitly refer to 'Observed'
-        scale_df['scenario'] = scale_df['scenario'].fillna('Observed')
-        scale_df['gcm'] = scale_df['gcm'].fillna('Observed')
+
         
         if 'year' in scale_df.columns and 'month' in scale_df.columns:
             scale_df = scale_df.sort_values(by=[su_col, 'scenario', 'gcm', 'year', 'month'])

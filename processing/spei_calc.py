@@ -139,6 +139,10 @@ def spei_calc_main(config):
     df_val = pd.read_csv(val_csv, parse_dates=['date'])
     df_proj = pd.read_csv(proj_csv, parse_dates=['date'])
 
+    if start_yr is not None and end_yr is not None:
+        logger.info(f'Clipping validation dataset to years {start_yr}-{end_yr}')
+        df_val = df_val[(df_val['year'] >= start_yr) & (df_val['year'] <= end_yr)]
+
     # Ensure validation data has the missing columns as empty/null
     for col in ['scenario', 'gcm']: 
         if col not in df_val.columns:
@@ -168,11 +172,6 @@ def spei_calc_main(config):
         df_val_su = df_val[df_val[spatial_unit_col] == su].copy()
         if not df_val_su.empty:
             logger.info(f"  Fitting Observed Data for {su}...")
-
-            if start_yr is not None and end_yr is not None:
-                logger.info(f'Clipping validation dataset to years {start_yr}-{end_yr}')
-                df_val_su = df_val_su[(df_val_su['year'] >= start_yr) & (df_val_su['year'] <= end_yr)]
-
 
             df_val_su.set_index('date', inplace = True)
 
@@ -237,6 +236,9 @@ def spei_calc_main(config):
 
         for spei_scale in spei_indices:
             df_spei_final[f'spei{spei_scale}'] = round(df_spei_final[f'spei{spei_scale}'], 2)
+
+            dry_mask = df_spei_final[f'spei{spei_scale}'] <= float(config.get('spei_threshold', -1))
+            df_spei_final[f'spei{spei_scale}_dry'] = np.where(dry_mask, 1, 0)
 
         out_csv = config.get("spei_csv", "Outputs/spei_data.csv")
         os.makedirs(os.path.dirname(out_csv) or '.', exist_ok=True)

@@ -28,14 +28,14 @@
     "spei_csv": "/home/politti/data/Danube_5min/spei_nuts_2/nuts_2_spei.csv",
     "ks_csv": "/home/politti/data/Danube_5min/spei_nuts_2/ks_test_nuts_2.csv",
     "validation_plots_dir": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/plots/gcms_validation",
-    "dry_events_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/drought_counts/dry_events_{index}.csv",
-    "dry_events_len_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/drought_counts/dry_events_len_{index}.csv",
-    "dry_events_sev_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/drought_counts/dry_events_sev_{index}.csv",
+    "dry_events_csv": "/home/politti/data/Danube_5min/spei_nuts_2/drought_counts/dry_events_{index}.csv",
+    "dry_events_len_csv": "/home/politti/data/Danube_5min/spei_nuts_2/drought_counts/dry_events_len_{index}.csv",
+    "dry_events_sev_csv": "/home/politti/data/Danube_5min/spei_nuts_2/drought_counts/dry_events_sev_{index}.csv",
     "gcm_eval_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/gcm_evaluation.csv",
     "copula_analysis_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/copula_analysis.csv",
     "spei_threshold": -1.0,
     "ref_start_year": 1951,
-    "ref_end_year": 2014,
+    "ref_end_year": 2010,
     "proj_start_year": 2030,
     "proj_end_year": 2100,
     "valid_gcms": [
@@ -43,61 +43,53 @@
             "NUTS_ID": "AT11",
             "gcm": "GFDL-ESM4",
             "spei": "spei3",
-            "ks-test": 0.174,
-            "p-value": 0.4668,
+            "ks-test": 0.167,
+            "p-value": 0.8514,
             "passed": true
         },
         {
             "NUTS_ID": "AT11",
             "gcm": "MPI-ESM1-2-HR",
             "spei": "spei3",
-            "ks-test": 0.116,
-            "p-value": 0.908,
+            "ks-test": 0.109,
+            "p-value": 0.9929,
             "passed": true
         },
         {
             "NUTS_ID": "AT11",
             "gcm": "MRI-ESM2-0",
             "spei": "spei3",
-            "ks-test": 0.188,
-            "p-value": 0.2623,
+            "ks-test": 0.151,
+            "p-value": 0.8616,
             "passed": true
         },
         {
             "NUTS_ID": "AT11",
             "gcm": "IPSL-CM6A-LR",
             "spei": "spei3",
-            "ks-test": 0.175,
-            "p-value": 0.3502,
+            "ks-test": 0.218,
+            "p-value": 0.4122,
             "passed": true
         },
         {
             "NUTS_ID": "AT11",
             "gcm": "UKESM1-0-LL",
             "spei": "spei3",
-            "ks-test": 0.732,
-            "p-value": 0.0,
+            "ks-test": 0.667,
+            "p-value": 0.0009,
             "passed": false
         },
         {
             "NUTS_ID": "AT11",
             "gcm": "GFDL-ESM4",
             "spei": "spei12",
-            "ks-test": 0.417,
-            "p-value": 0.2558,
+            "ks-test": 0.167,
+            "p-value": 0.9985,
             "passed": true
         },
         {
             "NUTS_ID": "AT11",
             "gcm": "MPI-ESM1-2-HR",
-            "spei": "spei12",
-            "ks-test": 0.333,
-            "p-value": 0.5361,
-            "passed": true
-        },
-        {
-            "NUTS_ID": "AT11",
-            "gcm": "MRI-ESM2-0",
             "spei": "spei12",
             "ks-test": 0.25,
             "p-value": 0.869,
@@ -105,18 +97,26 @@
         },
         {
             "NUTS_ID": "AT11",
+            "gcm": "MRI-ESM2-0",
+            "spei": "spei12",
+            "ks-test": 0.333,
+            "p-value": 0.5361,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "AT11",
             "gcm": "IPSL-CM6A-LR",
             "spei": "spei12",
-            "ks-test": 0.5,
-            "p-value": 0.0995,
-            "passed": true
+            "ks-test": 0.583,
+            "p-value": 0.0314,
+            "passed": false
         },
         {
             "NUTS_ID": "AT11",
             "gcm": "UKESM1-0-LL",
             "spei": "spei12",
-            "ks-test": 0.333,
-            "p-value": 0.5361,
+            "ks-test": 0.417,
+            "p-value": 0.2558,
             "passed": true
         }
     ]
