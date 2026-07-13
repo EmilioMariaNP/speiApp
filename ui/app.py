@@ -13,11 +13,12 @@ if __name__ == "__main__":
     config_dict = load_config(config_path)
 
     # update file paths
-    home_dir = config_dict['home_dir']
-    config_dict['projections_csv'] = os.path.join(home_dir, config_dict['projections_csv'])
-    config_dict['validation_dataset'] = os.path.join(home_dir, config_dict['validation_dataset'])
-    print(config_dict['validation_dataset'])
-    config_dict['dry_events_count_csv'] = os.path.join(home_dir, config_dict['dry_events_count_csv'])
+    home_dir = config_dict.get('home_dir', None)
+    if home_dir:
+        config_dict['projections_csv'] = os.path.join(home_dir, config_dict['projections_csv'])
+        config_dict['validation_dataset'] = os.path.join(home_dir, config_dict['validation_dataset'])
+        # print(config_dict['validation_dataset'])
+        config_dict['dry_events_count_csv'] = os.path.join(home_dir, config_dict['dry_events_count_csv'])
 
     if config_dict:
 
