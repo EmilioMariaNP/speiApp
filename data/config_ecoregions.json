@@ -1,0 +1,123 @@
+{
+    "execute_spei": true,
+    "execute_ks_test": true,
+    "spei_indices": [
+        3,
+        12
+    ],
+    "reference_scenario": "historical",
+    "spei_3_months": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+    ],
+    "projections_csv": "/home/politti/data/Danube_5min/spei_ecoregions/water_balance_danube_ecoregions.csv",
+    "validation_dataset": "/home/politti/data/Danube_5min/spei_ecoregions/water_balance_danube_ecoregions_cru.csv",
+    "spatial_unit_col": "region",
+    "spatial_units": [
+        "Pontic Province"
+    ],
+    "spatial_units_bak": [
+        "Pontic Province",
+        "Alps",
+        "Eastern Plains"
+    ],
+    "spei_csv": "/home/politti/data/Danube_5min/spei_ecoregions/ecoregions_spei.csv",
+    "dry_events_csv": "/home/politti/data/Danube_5min/spei_ecoregions//drought_counts/dry_events.csv",
+    "dry_events_count_csv": "/home/politti/data/Danube_5min/spei_ecoregions//drought_counts/dry_events_count.csv",
+    "validation_plots_dir": "",
+    "dry_events_len_csv": "",
+    "dry_events_sev_csv": "",
+    "gcm_eval_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/gcm_evaluation.csv",
+    "copula_analysis_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/copula_analysis.csv",
+    "spei_threshold": -1.0,
+    "ref_start_year": 1951,
+    "ref_end_year": 2010,
+    "proj_start_year": 2030,
+    "proj_end_year": 2100,
+    "valid_gcms": [
+        {
+            "region": "Pontic Province",
+            "gcm": "GFDL-ESM4",
+            "spei": "spei3",
+            "ks-test": 0.243,
+            "p-value": 0.339,
+            "passed": true
+        },
+        {
+            "region": "Pontic Province",
+            "gcm": "MPI-ESM1-2-HR",
+            "spei": "spei3",
+            "ks-test": 0.44,
+            "p-value": 0.0516,
+            "passed": true
+        },
+        {
+            "region": "Pontic Province",
+            "gcm": "MRI-ESM2-0",
+            "spei": "spei3",
+            "ks-test": 0.126,
+            "p-value": 0.9303,
+            "passed": true
+        },
+        {
+            "region": "Pontic Province",
+            "gcm": "IPSL-CM6A-LR",
+            "spei": "spei3",
+            "ks-test": 0.208,
+            "p-value": 0.5205,
+            "passed": true
+        },
+        {
+            "region": "Pontic Province",
+            "gcm": "UKESM1-0-LL",
+            "spei": "spei3",
+            "ks-test": 0.21,
+            "p-value": 0.6392,
+            "passed": true
+        },
+        {
+            "region": "Pontic Province",
+            "gcm": "GFDL-ESM4",
+            "spei": "spei12",
+            "ks-test": 0.25,
+            "p-value": 0.869,
+            "passed": true
+        },
+        {
+            "region": "Pontic Province",
+            "gcm": "MPI-ESM1-2-HR",
+            "spei": "spei12",
+            "ks-test": 0.333,
+            "p-value": 0.5361,
+            "passed": true
+        },
+        {
+            "region": "Pontic Province",
+            "gcm": "MRI-ESM2-0",
+            "spei": "spei12",
+            "ks-test": 0.333,
+            "p-value": 0.5361,
+            "passed": true
+        },
+        {
+            "region": "Pontic Province",
+            "gcm": "IPSL-CM6A-LR",
+            "spei": "spei12",
+            "ks-test": 0.25,
+            "p-value": 0.869,
+            "passed": true
+        },
+        {
+            "region": "Pontic Province",
+            "gcm": "UKESM1-0-LL",
+            "spei": "spei12",
+            "ks-test": 0.25,
+            "p-value": 0.869,
+            "passed": true
+        }
+    ]
+}

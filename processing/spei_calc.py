@@ -251,9 +251,9 @@ def spei_calc_main(config):
 
 if __name__ == "__main__":
     # Standard entrypoint loading the generic config json
-    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'config.json')
+    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'config_nut2.json')
     config_dict = load_config(config_path)
     if config_dict:
         spei_calc_main(config_dict)
     else:
-        logger.error("Failed to load config.json. Exiting.")
+        logger.error("Failed to load config_nut2.json. Exiting.")

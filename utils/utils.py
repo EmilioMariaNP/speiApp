@@ -8,7 +8,7 @@ import scipy.stats as sps
 from functools import reduce
 
 
-def load_config(config_path="config.json"):
+def load_config(config_path="config_nut2.json"):
     """Load the JSON configuration file."""
     if not os.path.exists(config_path):
         logger.error(f"Configuration file {config_path} not found.")

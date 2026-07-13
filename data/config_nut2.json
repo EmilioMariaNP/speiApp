@@ -26,11 +26,14 @@
         "RO12"
     ],
     "spei_csv": "/home/politti/data/Danube_5min/spei_nuts_2/nuts_2_spei.csv",
-    "ks_csv": "/home/politti/data/Danube_5min/spei_nuts_2/ks_test_nuts_2.csv",
+    "dry_events_csv": "/home/politti/data/Danube_5min/spei_nuts_2/drought_counts/dry_events.csv",
+    "dry_events_count_csv": "/home/politti/data/Danube_5min/spei_nuts_2/drought_counts/dry_events_count.csv",
+
     "validation_plots_dir": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/plots/gcms_validation",
-    "dry_events_csv": "/home/politti/data/Danube_5min/spei_nuts_2/drought_counts/dry_events_{index}.csv",
+
     "dry_events_len_csv": "/home/politti/data/Danube_5min/spei_nuts_2/drought_counts/dry_events_len_{index}.csv",
     "dry_events_sev_csv": "/home/politti/data/Danube_5min/spei_nuts_2/drought_counts/dry_events_sev_{index}.csv",
+
     "gcm_eval_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/gcm_evaluation.csv",
     "copula_analysis_csv": "/home/politti/data/Danube_5min/spei_ecoregions/outs_test/copula_analysis.csv",
     "spei_threshold": -1.0,
