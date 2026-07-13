@@ -1,5 +1,5 @@
 {
-    "execute_spei": false,
+    "execute_spei": true,
     "execute_ks_test": true,
     "spei_indices": [
         3,
@@ -18,7 +18,7 @@
     "validation_dataset": "/home/politti/data/Danube_5min/spei_nuts_2/water_balance_danube_nuts2_cru.csv",
     "spatial_unit_col": "NUTS_ID",
     "spatial_units": [
-        "AT11"
+        "RO22"
     ],
     "spatial_units_bak": [
         "AT11",
@@ -40,83 +40,83 @@
     "proj_end_year": 2100,
     "valid_gcms": [
         {
-            "NUTS_ID": "AT11",
+            "NUTS_ID": "RO22",
             "gcm": "GFDL-ESM4",
             "spei": "spei3",
-            "ks-test": 0.167,
-            "p-value": 0.8514,
+            "ks-test": 0.417,
+            "p-value": 0.0818,
             "passed": true
         },
         {
-            "NUTS_ID": "AT11",
+            "NUTS_ID": "RO22",
             "gcm": "MPI-ESM1-2-HR",
             "spei": "spei3",
-            "ks-test": 0.109,
-            "p-value": 0.9929,
-            "passed": true
-        },
-        {
-            "NUTS_ID": "AT11",
-            "gcm": "MRI-ESM2-0",
-            "spei": "spei3",
-            "ks-test": 0.151,
-            "p-value": 0.8616,
-            "passed": true
-        },
-        {
-            "NUTS_ID": "AT11",
-            "gcm": "IPSL-CM6A-LR",
-            "spei": "spei3",
-            "ks-test": 0.218,
-            "p-value": 0.4122,
-            "passed": true
-        },
-        {
-            "NUTS_ID": "AT11",
-            "gcm": "UKESM1-0-LL",
-            "spei": "spei3",
-            "ks-test": 0.667,
-            "p-value": 0.0009,
-            "passed": false
-        },
-        {
-            "NUTS_ID": "AT11",
-            "gcm": "GFDL-ESM4",
-            "spei": "spei12",
-            "ks-test": 0.167,
-            "p-value": 0.9985,
-            "passed": true
-        },
-        {
-            "NUTS_ID": "AT11",
-            "gcm": "MPI-ESM1-2-HR",
-            "spei": "spei12",
             "ks-test": 0.25,
             "p-value": 0.869,
             "passed": true
         },
         {
-            "NUTS_ID": "AT11",
+            "NUTS_ID": "RO22",
             "gcm": "MRI-ESM2-0",
-            "spei": "spei12",
-            "ks-test": 0.333,
-            "p-value": 0.5361,
+            "spei": "spei3",
+            "ks-test": 0.636,
+            "p-value": 0.0004,
+            "passed": false
+        },
+        {
+            "NUTS_ID": "RO22",
+            "gcm": "IPSL-CM6A-LR",
+            "spei": "spei3",
+            "ks-test": 0.409,
+            "p-value": 0.1113,
             "passed": true
         },
         {
-            "NUTS_ID": "AT11",
-            "gcm": "IPSL-CM6A-LR",
+            "NUTS_ID": "RO22",
+            "gcm": "UKESM1-0-LL",
+            "spei": "spei3",
+            "ks-test": 0.326,
+            "p-value": 0.3112,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "RO22",
+            "gcm": "GFDL-ESM4",
+            "spei": "spei12",
+            "ks-test": 0.5,
+            "p-value": 0.0995,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "RO22",
+            "gcm": "MPI-ESM1-2-HR",
             "spei": "spei12",
             "ks-test": 0.583,
             "p-value": 0.0314,
             "passed": false
         },
         {
-            "NUTS_ID": "AT11",
+            "NUTS_ID": "RO22",
+            "gcm": "MRI-ESM2-0",
+            "spei": "spei12",
+            "ks-test": 0.667,
+            "p-value": 0.0079,
+            "passed": false
+        },
+        {
+            "NUTS_ID": "RO22",
+            "gcm": "IPSL-CM6A-LR",
+            "spei": "spei12",
+            "ks-test": 0.5,
+            "p-value": 0.0995,
+            "passed": true
+        },
+        {
+            "NUTS_ID": "RO22",
             "gcm": "UKESM1-0-LL",
             "spei": "spei12",
-            "ks-test": 0.417,
-            "p-value": 0.2558,
+            "ks-test": 0.5,
+            "p-value": 0.0995,
             "passed": true
         }
     ]

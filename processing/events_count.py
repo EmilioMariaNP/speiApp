@@ -8,46 +8,69 @@ from loguru import logger
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.utils import load_config
 
-def extract_drought_events(df, threshold, spei_col):
+
+def compute_drought_events(df, dry_col = 'spei3_dry', spei_col = 'spei3'):
     """
-    Extracts drought events from a pandas DataFrame containing 'year' 'month' and SPEI values.
-    Returns a dataframe of events with duration and severity.
+    Computes the length and intensity of drought events for each GCM
+    using a single-month pooling strategy.
     """
-    if df.empty:
-        return pd.DataFrame(columns=['duration', 'severity'])
-        
-    is_dry = df[spei_col] <= threshold
-    
-    # Calculate absolute integer representing the month globally to verify continuity
-    abs_month = df['year'] * 12 + df['month']
-    
-    # Check if the previous row in the sorted dataframe is exactly 1 month prior
-    is_contiguous = (abs_month - abs_month.shift(1)) == 1
-    
-    # A new event starts when it's dry AND (it wasn't previously dry OR there is a gap in months)
-    start_of_new_event = is_dry & (~is_dry.shift(1).fillna(False) | ~is_contiguous)
-    
-    # Create an ID for each sequence of dry months
-    event_ids = start_of_new_event.cumsum()
-    
-    # Extract only the true dry periods using boolean masking
-    dry_periods = df[is_dry].copy()
-    
-    if dry_periods.empty:
-        return pd.DataFrame(columns=['duration', 'severity'])
-        
-    # Group by the dynamically created consecutive block IDs
-    dry_event_ids = event_ids[is_dry]
-    
-    events = dry_periods.groupby(dry_event_ids).agg(
-        duration=(spei_col, 'count'),
-        severity=(spei_col, lambda x: np.abs(np.sum(x)))
-    )
-    
-    return events
+    # Ensure the dataframe is chronologically sorted per GCM
+    df = df.sort_values(by=['gcm', 'year', 'month']).reset_index(drop=True)
+
+    all_gcm_events = []
+
+    # Process each GCM group independently
+    for gcm_name, group in df.groupby('gcm', sort=False):
+        group = group.copy()
+
+        # 1. Identify drought months (handles both boolean and 1/0 representation)
+        is_dry = (group[dry_col] == 1) | (group[dry_col] == True)
+
+        # 2. Apply pooling strategy: Include a non-drought month if it is sandwiched between two drought months
+        pooled_dry = is_dry | (is_dry.shift(1).fillna(False) & is_dry.shift(-1).fillna(False))
+
+        if not pooled_dry.any():
+            logger.warning(f'No drought events found for GCM: {gcm_name}')
+            continue
+
+        # 3. Define unique consecutive event IDs within this GCM
+        # An event starts when a month is dry/pooled-dry, but the previous month was not
+        event_start = pooled_dry & (~pooled_dry.shift(1).fillna(False))
+        group['event_id'] = event_start.cumsum()
+
+        # 4. Filter out non-drought records
+        drought_records = group[pooled_dry]
+
+        # 5. Aggregate metrics per event
+        event_summary = drought_records.groupby('event_id').agg(
+            year=('year', 'first'),
+            start_month=('month', 'first'),
+            end_month=('month', 'last'),
+            event_len=(spei_col, 'count'),  # Total consecutive months inside the pooled event
+            event_intensity=(spei_col, 'sum')  # Cumulative sum of SPEI3 inside the pooled event
+        ).reset_index()
+
+        # Add the GCM context column
+        event_summary['gcm'] = gcm_name
+
+        # Reorder columns to match specifications exactly
+        event_summary = event_summary[[
+            'year', 'start_month', 'end_month', 'event_id', 'gcm', 'event_len', 'event_intensity'
+        ]]
+
+        all_gcm_events.append(event_summary)
+
+    # Combine results from all GCMs into a single DataFrame
+    if all_gcm_events:
+        return pd.concat(all_gcm_events, ignore_index=True)
+    else:
+        return pd.DataFrame(
+            columns=['year', 'start_month', 'end_month', 'event_id', 'gcm', 'event_len', 'event_intensity'])
+
+
 
 def events_count_main(config):
-    logger.info("Starting Stage 3: Drought Events Extraction")
+    logger.info("Starting Stage 3: Drought Events Lenght and Duration Extraction")
     
     spei_csv = config.get("spei_csv")
     if not spei_csv or not os.path.exists(spei_csv):
@@ -59,7 +82,6 @@ def events_count_main(config):
     
     # Load Basic Configuration Params
     su_col = config.get("spatial_unit_col", "region")
-    threshold = config.get("spei_threshold", -0.5)
     spei_indices = config.get("spei_indices", [3, 12])
     spei_3_months = config.get("spei_3_months", [5, 6, 7, 8])
     
