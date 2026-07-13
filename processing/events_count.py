@@ -143,7 +143,8 @@ def events_count_main(config):
 if __name__ == "__main__":
 
     # Handle the JSON path cleanly whether executing locally from the /processing dir or globally
-    config_path = '../data/config_nut2.json'
+    # config_path = '../data/config_nut2.json'
+    config_path = '../data/config_ecoregions.json'
     if not os.path.exists(config_path):
         config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data/config_nut2.json")
 

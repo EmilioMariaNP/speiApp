@@ -26,8 +26,8 @@
         "Eastern Plains"
     ],
     "spei_csv": "/home/politti/data/Danube_5min/spei_ecoregions/ecoregions_spei.csv",
-    "dry_events_csv": "/home/politti/data/Danube_5min/spei_ecoregions//drought_counts/dry_events.csv",
-    "dry_events_count_csv": "/home/politti/data/Danube_5min/spei_ecoregions//drought_counts/dry_events_count.csv",
+    "dry_events_csv": "/home/politti/data/Danube_5min/spei_ecoregions/drought_counts/dry_events.csv",
+    "dry_events_count_csv": "/home/politti/data/Danube_5min/spei_ecoregions/drought_counts/dry_events_count.csv",
     "validation_plots_dir": "",
     "dry_events_len_csv": "",
     "dry_events_sev_csv": "",
