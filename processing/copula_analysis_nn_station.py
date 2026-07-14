@@ -9,7 +9,7 @@ import warnings
 
 import numpy as np
 from loguru import logger
-from spei_wflow.utils import get_config, load_dataframe, save_dataframe
+from utils.utils import load_config, load_dataframe, save_dataframe
 import pandas as pd
 from scipy import stats
 from copulae import (
@@ -410,6 +410,7 @@ def analyze_return_periods(events_df,
                            ref_end_year,
                            proj_end_year,
                            proj_start_year,
+                           return_periods,
                            copula_family=None):
     # 1. Prepare Data
     events_df = events_df.copy()
@@ -590,7 +591,9 @@ def analyze_univariate_return_periods(df,
                                       ref_start_year,
                                       ref_end_year,
                                       proj_end_year,
-                                      proj_start_year
+                                      proj_start_year,
+                                      growth_season_months,
+                                      return_periods
                                       ):
     """
     Calculates return periods for a specific drought variable and
@@ -686,15 +689,64 @@ def analyze_univariate_return_periods(df,
     return pd.DataFrame(results)
 
 
-def main_copula_nn_station():
+def main_copula_nn_station(config):
+
+    ref_start_year = config["ref_start_year"]
+    ref_end_year = config["ref_end_year"]
+    proj_end_year = config["proj_end_year"]  # analysis will be limited to the data before this year
+    proj_start_year = config['proj_start_year']
+
+    spatial_unit_col = config["spatial_unit_col"]
+
+    # datasets_data = config["datasets"]
+    # datasets_keys = list(datasets_data.keys())
+    # validation_datasets = config["validation_datasets"]
+    # proj_datasets_keys = [x for x in datasets_keys if x not in validation_datasets]
+
+    # ref_scenario = config['datasets']['projections']['reference_scenario']
+    # analysis_scenarios = config['scenario']
+    # if len(analysis_scenarios) > 0 and ref_scenario not in analysis_scenarios:
+    #     analysis_scenarios.append(ref_scenario)
+
+    spei_scales = config.get('spei_indices', [3, 12])
+
+    copula_family = config.get('copula_family', 'gumbel')
+    default_distribution = config.get('default_distribution', None)  # Set to None to use dynamic distribution selection
+    analysis_regions = config.get('spatial_units', [])
+    exclude_month_events = config.get('exclude_month_events', True)  # exclude drought events of 1 month length --> create noise and are not necessarily drought events
+
+    # use the whole year if growth season not provided
+    growth_season_start = config.get('growth_season_start', 1)
+    growth_season_end = config.get('growth_season_end', 12)
+    growth_season_months = list(range(growth_season_start, growth_season_end + 1))
+
+    return_periods = config.get('return_periods', [5, 10])
+    ref_scenario = config.get('reference_scenario', 'historical')
+    analysis_scenarios = config.get('analysis_scenarios', [])
+
+    events_csv = config["dry_events_csv"]
+    copula_csv = config.get('copula_analysis_csv', None)
+    gcm_eval_csv = config.get('gcm_eval_csv', None)
+    return_periods_csv = config["return_periods_csv"]
+    # plots_dir = os.path.join(work_dir, 'frequency', 'plots')
+
+
+    logger.info('Starting non-stationary copula analysis...')
+
+
     df_events = load_dataframe(events_csv)
+    gcm_eval_df = load_dataframe(gcm_eval_csv)
+
     print()
+
+    # remove validation
+    df_events = df_events[df_events['scenario'] != 'validation']
+
     if exclude_month_events:
         df_events = df_events[df_events['duration'] > 1].copy(deep=True)
     df_events.sort_values(by=["start_year"], inplace=True)
     df_events = df_events[(df_events["start_year"] <= proj_end_year) & (df_events['start_year'] >= ref_start_year)]
 
-    # spatial_units = df_events[spatial_unit_col].unique().tolist()
     gcms = df_events["gcm"].unique().tolist()
 
     if len(analysis_regions) == 0:
@@ -717,113 +769,75 @@ def main_copula_nn_station():
                 for gcm in gcms:
                     logger.info(f"Evaluating {scenario}-{gcm}-{spei_col} for {su}")
 
-                    df_cop = df_events[
-                        (df_events["scenario"].isin([scenario, ref_scenario]))
-                        & (df_events["gcm"] == gcm)
-                        & (df_events["spei"] == spei_scale)
-                        & (df_events[spatial_unit_col] == su)
+                    # read from the GCM evaluation file if the GCM is fit to model the su
+                    gcm_eval = gcm_eval_df[
+                                    (gcm_eval_df["gcm"] == gcm) &
+                                    (gcm_eval_df[spatial_unit_col] == su) &
+                                    (gcm_eval_df['spei'] == spei_col)
                         ]
 
-                    if spei_scale == 3:  # limit spei 3 to growth season months only
-                        df_cop = df_cop[(df_cop['start_month'].isin(growth_season_months)) |
-                                        (df_cop['end_month'].isin(growth_season_months))
-                                        ]
+                    if len(gcm_eval.index) >0:
+                        gcm_is_valid = gcm_eval.iloc[0]['passed']
+                    else:
+                        gcm_is_valid = True
 
-                    # logger.info('Analyzing intensity return periods...')
-                    # rp_intensity = analyze_univariate_return_periods(df = df_cop,
-                    #                                                  column_name = 'intensity',
-                    #                                                  spei_col = spei_col,
-                    #                                                  ref_start_year = ref_start_year,
-                    #                                                  ref_end_year = ref_end_year,
-                    #                                                  proj_end_year = proj_end_year,
-                    #                                                  proj_start_year = proj_start_year
-                    #                                               )
-                    # print()
-                    # logger.info('Analysing duration return periods...')
-                    # rp_duration = analyze_univariate_return_periods(df = df_cop,
-                    #                                                 column_name='duration',
-                    #                                                 spei_col=spei_col,
-                    #                                                 ref_start_year=ref_start_year,
-                    #                                                 ref_end_year=ref_end_year,
-                    #                                                 proj_end_year=proj_end_year,
-                    #                                                 proj_start_year=proj_start_year
-                    #                                                 )
+                    if gcm_is_valid:
 
-                    # rp_df = rp_intensity.merge(rp_duration, on='Return Period (Years)', how='inner')
-                    # rp_df.rename(columns={'Return Period (Years)': 'Return period'}, inplace=True)
+                        df_cop = df_events[
+                            (df_events["scenario"].isin([scenario, ref_scenario]) )
+                            & (df_events["gcm"] == gcm)
+                            & (df_events["spei"] == spei_scale)
+                            & (df_events[spatial_unit_col] == su)
 
-                    # rp_df["scenario"] = scenario
-                    # rp_df["gcm"] = gcm
-                    # rp_df["spei"] = spei_scale
-                    # rp_df[spatial_unit_col] = su
-                    # df_rp_list.append(rp_df)
-                    # print()
-                    logger.info("Analysing join distribution...")
-                    df_cop_analysis = analyze_return_periods(
-                        events_df=df_cop,
-                        copula_family=copula_family,
-                        ref_start_year=ref_start_year,
-                        ref_end_year=ref_end_year,
-                        proj_end_year=proj_end_year,
-                        proj_start_year=proj_start_year
-                    )
+                            ]
 
-                    df_cop_analysis["scenario"] = scenario
-                    df_cop_analysis["gcm"] = gcm
-                    df_cop_analysis["spei"] = spei_scale
-                    df_cop_analysis[spatial_unit_col] = su
-                    df_copuls_list.append(df_cop_analysis)
+                        if spei_scale == 3:  # limit spei 3 to growth season months only
+                            df_cop = df_cop[(df_cop['start_month'].isin(growth_season_months)) |
+                                            (df_cop['end_month'].isin(growth_season_months))
+                                            ]
 
-    # df_rp = pd.concat(df_rp_list, ignore_index=True)
-    # save_dataframe(df=df_rp, csv_file=return_periods_csv)
+                        logger.info("Analysing join distribution...")
+                        df_cop_analysis = analyze_return_periods(
+                            events_df=df_cop,
+                            copula_family=copula_family,
+                            ref_start_year=ref_start_year,
+                            ref_end_year=ref_end_year,
+                            proj_end_year=proj_end_year,
+                            proj_start_year=proj_start_year,
+                            return_periods=return_periods
+                        )
+
+                        df_cop_analysis["scenario"] = scenario
+                        df_cop_analysis["gcm"] = gcm
+                        df_cop_analysis["spei"] = spei_scale
+                        df_cop_analysis[spatial_unit_col] = su
+                        df_copuls_list.append(df_cop_analysis)
+                    else:
+                        logger.info(f"GCM {gcm} not fit for {spei_col} in {su}. Skipping the GCM.")
+
+
     df_copulas = pd.concat(df_copuls_list, ignore_index=True)
     save_dataframe(df=df_copulas, csv_file=copula_csv)
 
 
 if __name__ == "__main__":
     # config_file = "../data/ecoregions/workflow_config_ecoregions.json"
-    config_file = "data/ecoregions/workflow_config_ecoregions.json"
+    config_file = "../data/config_ecoregions.json"
 
-    config = get_config(config_file)
+    config = load_config(config_file)
 
-    ref_start_year = config["ref_start_year"]
-    ref_end_year = config["ref_end_year"]
-    proj_end_year = config["proj_end_year"]  # analysis will be limited to the data before this year
-    proj_start_year = config['proj_start_year']
 
-    spatial_unit_col = config["spatial_unit_col"]
+    home_dir = config.get("home_dir", None)
+    if home_dir:
 
-    datasets_data = config["datasets"]
-    datasets_keys = list(datasets_data.keys())
-    validation_datasets = config["validation_datasets"]
-    proj_datasets_keys = [x for x in datasets_keys if x not in validation_datasets]
+        config["dry_events_csv"] = os.path.join(
+            home_dir, config["dry_events_csv"]
+        )
 
-    ref_scenario = config['datasets']['projections']['reference_scenario']
-    analysis_scenarios = config['scenario']
-    # if len(analysis_scenarios) > 0 and ref_scenario not in analysis_scenarios:
-    #     analysis_scenarios.append(ref_scenario)
+        config['gcm_eval_csv'] = os.path.join(home_dir, config['gcm_eval_csv'])
+        config['copula_analysis_csv'] = os.path.join(home_dir, config['copula_analysis_csv'])
 
-    spei_scales = [3, 12]
-    return_periods = [1, 5, 10, 30, 50, 100]
-    copula_family = 'gumbel'
-    default_distribution = 'genextreme'  # Set to None to use dynamic distribution selection
-    analysis_regions = config['analysis_regions']
-    exclude_month_events = config[
-        'exclude_month_events']  # exclude drought events of 1 month length --> create noise and are not necessarily drought events
 
-    growth_season_start = config['growth_season_start']
-    growth_season_end = config['growth_season_end']
-    growth_season_months = list(range(growth_season_start, growth_season_end + 1))
-
-    work_dir = config["work_dir"]
-    events_csv = config["events_csv"]
-    events_csv = os.path.join(work_dir, events_csv)
-    copula_csv = config["copula_csv"]
-    copula_csv = os.path.join(work_dir, copula_csv)
-    return_periods_csv = config["return_periods_csv"]
-    return_periods_csv = os.path.join(work_dir, return_periods_csv)
-    # plots_dir = os.path.join(work_dir, 'frequency', 'plots')
-
-    main_copula_nn_station()
+    main_copula_nn_station(config)
 
     print("Process completed.")

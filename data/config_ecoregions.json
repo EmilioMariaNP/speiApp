@@ -1,8 +1,10 @@
 {
-    "home_dir": "/run/media/emilio/data/danube_drought_futures",
-    "execute_spei": true,
+    "home_dir_lenovo": "/run/media/emilio/data/danube_drought_futures",
+    "home_dir": "/home/politti/data/Danube_5min/spei_ecoregions",
+    "execute_spei": false,
     "execute_ks_test": true,
-    "execute_count": true,
+    "execute_count": false,
+    "execute_copula": false,
     "spei_indices": [
         3,
         12
@@ -16,8 +18,10 @@
         7,
         8
     ],
-    "projections_csv": "/run/media/emilio/data/danube_drought_futures/spei_ecoregions/water_balance_danube_ecoregions.csv",
-    "validation_dataset": "/run/media/emilio/data/danube_drought_futures/spei_ecoregions/water_balance_danube_ecoregions_cru.csv",
+    "analysis_scenarios": [],
+    "water_balance_col": "water_balance",
+    "projections_csv": "pr_et_water_balance_danube_ecoregions.csv",
+    "validation_dataset": "water_balance_danube_ecoregions_cru.csv",
     "spatial_unit_col": "region",
     "spatial_units": [
         "Pontic Province"
@@ -27,26 +31,40 @@
         "Alps",
         "Eastern Plains"
     ],
-    "spei_csv": "spei_ecoregions/ecoregions_spei.csv",
-    "dry_events_csv": "spei_ecoregions/drought_counts/ecoregions_events_counts.csv",
-    "dry_events_count_csv": "/run/media/emilio/data/danube_drought_futures/spei_ecoregions/drought_counts/dry_events_count.csv",
+    "spei_csv": "ecoregions_spei.csv",
+    "dry_events_csv": "drought_counts/ecoregions_dry_events.csv",
+    "dry_events_count_csv": "drought_counts/ecoregions_dry_events_count.csv",
+    "return_periods_csv": "copula_analysis/return_periods.csv",
     "validation_plots_dir": "",
     "dry_events_len_csv": "",
     "dry_events_sev_csv": "",
-    "gcm_eval_csv": "spei_ecoregions/outs_test/gcm_evaluation.csv",
-    "copula_analysis_csv": "spei_ecoregions/outs_test/copula_analysis.csv",
+    "gcm_eval_csv": "validation/gcm_evaluation.csv",
+    "copula_analysis_csv": "outs_test/copula_analysis.csv",
     "spei_threshold": -1.0,
-    "ref_start_year": 1951,
+    "ref_start_year": 1950,
     "ref_end_year": 2010,
     "proj_start_year": 2030,
     "proj_end_year": 2100,
+    "return_periods": [
+        1,
+        5,
+        10,
+        30,
+        50,
+        100
+    ],
+    "copula_family": "gumbel",
+    "default_distribution": "genextreme",
+    "exclude_month_events": true,
+    "growth_season_start": 3,
+    "growth_season_end": 9,
     "valid_gcms": [
         {
             "region": "Pontic Province",
             "gcm": "GFDL-ESM4",
             "spei": "spei3",
-            "ks-test": 0.243,
-            "p-value": 0.339,
+            "ks-test": 0.296,
+            "p-value": 0.1576,
             "passed": true
         },
         {
@@ -61,24 +79,24 @@
             "region": "Pontic Province",
             "gcm": "MRI-ESM2-0",
             "spei": "spei3",
-            "ks-test": 0.126,
-            "p-value": 0.9303,
+            "ks-test": 0.119,
+            "p-value": 0.9543,
             "passed": true
         },
         {
             "region": "Pontic Province",
             "gcm": "IPSL-CM6A-LR",
             "spei": "spei3",
-            "ks-test": 0.208,
-            "p-value": 0.5205,
+            "ks-test": 0.26,
+            "p-value": 0.2657,
             "passed": true
         },
         {
             "region": "Pontic Province",
             "gcm": "UKESM1-0-LL",
             "spei": "spei3",
-            "ks-test": 0.21,
-            "p-value": 0.6392,
+            "ks-test": 0.227,
+            "p-value": 0.5117,
             "passed": true
         },
         {
@@ -109,16 +127,16 @@
             "region": "Pontic Province",
             "gcm": "IPSL-CM6A-LR",
             "spei": "spei12",
-            "ks-test": 0.25,
-            "p-value": 0.869,
+            "ks-test": 0.417,
+            "p-value": 0.2558,
             "passed": true
         },
         {
             "region": "Pontic Province",
             "gcm": "UKESM1-0-LL",
             "spei": "spei12",
-            "ks-test": 0.25,
-            "p-value": 0.869,
+            "ks-test": 0.167,
+            "p-value": 0.9985,
             "passed": true
         }
     ]

@@ -4,7 +4,7 @@ import os
 from loguru import logger
 from scipy import stats
 
-from utils.utils import load_config, load_dataframe, dump_json_to_file
+from utils.utils import load_config, load_dataframe, dump_json_to_file, save_dataframe
 
 
 def compare_distributions_ks(series1, series2, alpha=0.05):
@@ -39,6 +39,7 @@ def main_gcms_eval(config):
     Compare by means of KS test the historical-gcm SPEI-n with the remote sensing derived SPEI-n by spatial unit to test if the gcms replicate
     the observed period.
     """
+    logger.info('Executing GCMs KS test...')
 
     spatial_unit_col = config.get("spatial_unit_col", "spatial_unit")
     target_sus = config.get("spatial_units", [])
@@ -46,6 +47,8 @@ def main_gcms_eval(config):
     spei_cols = [f'spei{x}' for x in spei_indices]
 
     reference_scenario = config.get("reference_scenario", 'historical')
+
+    gcm_eval_csv = config.get('gcm_eval_csv', None)
 
     df_spei = load_dataframe(config.get("spei_csv", "Outputs/spei_data.csv"))
     df_spei['date'] = pd.to_datetime(df_spei['date'])
@@ -89,6 +92,10 @@ def main_gcms_eval(config):
                 results.append(record)
 
     config['valid_gcms'] = results
+
+    os.makedirs(os.path.dirname(gcm_eval_csv), exist_ok=True)
+    df_eval = pd.DataFrame(results)
+    save_dataframe(df_eval, gcm_eval_csv)
 
     return config
 
