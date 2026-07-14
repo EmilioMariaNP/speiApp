@@ -9,65 +9,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.utils import load_config, save_dataframe, generate_ai_commentary
 
-# def compute_drought_events(df, dry_col = 'spei3_dry', spei_col = 'spei3'):
-#     """
-#     Computes the length and intensity of drought events for each GCM
-#     using a single-month pooling strategy.
-#     """
-#     # Ensure the dataframe is chronologically sorted per GCM
-#     df = df.sort_values(by=['gcm', 'year', 'month']).reset_index(drop=True)
-#
-#     all_gcm_events = []
-#
-#     # Process each GCM group independently
-#     for gcm_name, group in df.groupby('gcm', sort=False):
-#         logger.info(f'Processing GCM: {gcm_name}')
-#         group = group.copy()
-#
-#         # 1. Identify drought months (handles both boolean and 1/0 representation)
-#         is_dry = (group[dry_col] == 1) | (group[dry_col] == True)
-#
-#         # 2. Apply pooling strategy: Include a non-drought month if it is sandwiched between two drought months
-#         pooled_dry = is_dry | (is_dry.shift(1, fill_value=False) & is_dry.shift(-1, fill_value=False))
-#
-#         if not pooled_dry.any():
-#             continue
-#
-#         # 3. Define unique event IDs
-#         # FIX: Remove .fillna(False) here as well, and use fill_value=False inside shift()
-#         event_start = pooled_dry & (~pooled_dry.shift(1, fill_value=False))
-#         group['event_id'] = event_start.cumsum()
-#
-#         # 4. Filter out non-drought records
-#         drought_records = group[pooled_dry]
-#
-#         # 5. Aggregate metrics per event
-#         event_summary = drought_records.groupby('event_id').agg(
-#             year=('year', 'first'),
-#             start_month=('month', 'first'),
-#             end_month=('month', 'last'),
-#             event_len=(spei_col, 'count'),  # Total consecutive months inside the pooled event
-#             event_intensity=(spei_col, 'sum')  # Cumulative sum of SPEI3 inside the pooled event
-#         ).reset_index()
-#
-#         # Add the GCM context column
-#         event_summary['gcm'] = gcm_name
-#
-#         # Reorder columns to match specifications exactly
-#         event_summary = event_summary[[
-#             'year', 'start_month', 'end_month', 'event_id', 'gcm', 'event_len', 'event_intensity'
-#         ]]
-#
-#         all_gcm_events.append(event_summary)
-#
-#     # Combine results from all GCMs into a single DataFrame
-#     if all_gcm_events:
-#         return pd.concat(all_gcm_events, ignore_index=True)
-#     else:
-#         return pd.DataFrame(
-#             columns=['year', 'start_month', 'end_month', 'event_id', 'gcm', 'event_len', 'event_intensity'])
-
-
 
 def calculate_drought_pooling_events(df, spei_col, pooling_threshold=1, min_duration=2):
     """
@@ -174,31 +115,6 @@ def events_count_main(config):
     # Load Expected Output File Templates
     dry_events_csv = config.get("dry_events_csv")
     dry_events_count_csv = config.get('dry_events_count_csv')
-
-    # dfs = []
-    # for i, spei_col in enumerate(spei_cols):
-    #     spei_dry_col = spei_dry_cols[i]
-    #
-    #     #logger.info(f"Processing Events for Index: {spei_col}")
-    #     if spei_col not in df.columns:
-    #         logger.warning(f"{spei_dry_col} column not found in input data. Skipping.")
-    #         continue
-    #
-    #     scale_df = df.copy()
-    #
-    #     for su in spatial_units:
-    #         for scenario in scenarios:
-    #             logger.info(f'Processing {su}-{scenario}-{spei_col}')
-    #             df_su_scen = scale_df[(scale_df['scenario'] == scenario) & (scale_df[su_col] == su)]
-    #             # Extract Distinct Drought Event characteristics (Duration, Severity)
-    #             events_df = compute_drought_events(df = df_su_scen,
-    #                                                dry_col = spei_dry_col,
-    #                                                spei_col = spei_col
-    #                                                )
-    #             events_df[su_col] = su
-    #             events_df['scenario'] = scenario
-    #             events_df['spei'] = spei_col
-    #            dfs.append(events_df)
 
     df_events_list = []
     for su in spatial_units:

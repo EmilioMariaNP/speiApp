@@ -1,0 +1,167 @@
+{
+  "Paths": {
+    "home_dir": {
+      "label": "Home folder",
+      "info": "Folder storing all the input data and where the outputs will be stored. Leave blank if you want to use absolute paths.",
+      "type": "string"
+    },
+    "projections_csv": {
+      "label": "Projections csv",
+      "info": "CSV file path storing the water balance calculated from GCMs.",
+      "type": "string"
+    },
+    "validation_dataset_csv": {
+      "label": "Validation dataset",
+      "info": "CSV file path of a dataset to be used as validation for the GCMs. This dataset is obtained from field data or remote sensing calculations of water balance.",
+      "type": "string"
+    },
+    "spei_csv": {
+      "label": "SPEI csv",
+      "info": "File path of the calculated SPEI",
+      "type": "string"
+    },
+    "dry_events_csv": {
+      "label": "Drought events csv",
+      "info": "FIle path of the drought calculated events.",
+      "type": "string"
+    },
+    "dry_events_count_csv": {
+      "label": "Drought events count csv",
+      "info": "Count of the drought event calculated from Drought events csv",
+      "type": "string"
+    },
+    "validation_plots_dir": {
+      "label": "Plots folder",
+      "info": "",
+      "type": "string"
+    },
+    "dry_events_len_csv": {
+      "label": "",
+      "info": "",
+      "type": "string"
+    },
+    "gcm_eval_csv": {
+      "label": "GCMs validation csv",
+      "info": "File path of the GCMs validation csv",
+      "type": "string"
+    },
+    "copula_analysis_csv": {
+      "label": "Copula csv",
+      "info": "File path of the csv to store the Copula analysis results.",
+      "type": "string"
+    }
+  },
+  "Modules execution": {
+    "execute_spei": {
+      "label": "Execute SPEI",
+      "info": "Sets if SPEI needs to be calculated or read from a file previoulsy calculated.",
+      "type": "bool"
+    },
+    "execute_ks_test": {
+      "label": "Execute KS",
+      "info": "Sets if Kolmogorov-Smirnov (KS) needs to be calculated or read from a file previoulsy calculated.",
+      "type": "bool"
+    },
+    "execute_count": {
+      "label": "Count events",
+      "info": "Sets if drought events needs to be calculated or read from a file previoulsy calculated.",
+      "type": "bool"
+    },
+    "execute_copula": {
+      "label": "Execute Copula",
+      "info": "Sets if the Copula analysis needs to be calculated or read from a file previoulsy calculated.",
+      "type": "bool"
+    }
+  },
+  "Dataset parameters": {
+    "reference_scenario": {
+      "label": "Reference scenario",
+      "info": "Reference scenario to be used as reference to fit the SPEI distribution and compute the historical return interval times.",
+      "type": "string"
+    },
+    "analysis_scenarios": {
+      "label": "",
+      "info": "",
+      "type": "string"
+    },
+    "water_balance_col": {
+      "label": "Water balance column",
+      "info": "Column in the water balance input csv that stores the water balance values to be used for SPEI calculation. Default: water_balance",
+      "type": "string"
+    },
+    "spatial_unit_col": {
+      "label": "Spatial unit column",
+      "info": "Column in the Projections csv and Validation dataset storing the spatial unit (e.g. water basins, NUTS2) for which the water balance in the Projections and Validation datasets have been calculated.",
+      "type": "string"
+    },
+    "spatial_units": {
+      "label": "Spatial units (optional)",
+      "info": "Spatial units to which the analysis shall be limited. If left blank, the analysis will be run for all the spatial units.",
+      "type": "list of strings"
+    }
+  },
+  "SPEI parameters": {
+    "spei_indices": {
+      "label": "SPEI scale",
+      "info": "SPEI scales (months) to be calculated (e.g. 3, 6, 12 months)",
+      "type": "list of integers"
+    },
+    "spei_threshold": {
+      "label": "SPEI threshold",
+      "info": "SPEI value below which a month is considered drought (typically -1, -1.5)",
+      "type": "integer"
+    },
+    "ref_start_year": {
+      "label": "Reference start year",
+      "info": "Starting year defining the reference period for the SPEI and return periods calculations.",
+      "type": "integer"
+    },
+    "ref_end_year": {
+      "label": "Reference end year",
+      "info": "Last year defining the reference period for the SPEI and return periods calculations.",
+      "type": "integer"
+    },
+    "proj_start_year": {
+      "label": "Projections start year",
+      "info": "Starting year defining the projections period for the SPEI and return periods calculations.",
+      "type": "integer"
+    },
+    "proj_end_year": {
+      "label": "Projections end year",
+      "info": "Last year defining the projections period for the SPEI and return periods calculations.",
+      "type": "integer"
+    },
+    "growth_season_start": {
+      "label": "Growth season start",
+      "info": "First month of the growing season, if specified limits SPEI3 return period analysis to growth season. If set, also Growth season end must be set.",
+      "type": "integer"
+    },
+    "growth_season_end": {
+      "label": "Growth season end",
+      "info": "Last month of the growing season, if specified limits SPEI3 return period analysis to growth season. If set, also Growth season start must be set.",
+      "type": "string"
+    }
+  },
+  "Copula parameters": {
+    "return_periods": {
+      "label": "Return periods",
+      "info": "Return periods for which drought intensity, duration and combined intensity and duration will be calculated.",
+      "type": "list of integers"
+    },
+    "copula_family": {
+      "label": "Copula family",
+      "info": "Copula family to be used, default is gumbel. If left ",
+      "type": "string"
+    },
+    "default_distribution": {
+      "label": "Default distribution",
+      "info": "Distribution to be used for marginal fitting. Leave blank for autofitting (longer computational times).",
+      "type": "string"
+    },
+    "exclude_month_events": {
+      "label": "Exclude month events",
+      "info": "If true, excludes drought events of 1 month that can generate noise.",
+      "type": "bool"
+    }
+  }
+}

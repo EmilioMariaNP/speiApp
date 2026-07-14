@@ -21,7 +21,7 @@
     "analysis_scenarios": [],
     "water_balance_col": "water_balance",
     "projections_csv": "pr_et_water_balance_danube_ecoregions.csv",
-    "validation_dataset": "water_balance_danube_ecoregions_cru.csv",
+    "validation_dataset_csv": "water_balance_danube_ecoregions_cru.csv",
     "spatial_unit_col": "region",
     "spatial_units": [
         "Pontic Province"
@@ -36,8 +36,6 @@
     "dry_events_count_csv": "drought_counts/ecoregions_dry_events_count.csv",
     "return_periods_csv": "copula_analysis/return_periods.csv",
     "validation_plots_dir": "",
-    "dry_events_len_csv": "",
-    "dry_events_sev_csv": "",
     "gcm_eval_csv": "validation/gcm_evaluation.csv",
     "copula_analysis_csv": "outs_test/copula_analysis.csv",
     "spei_threshold": -1.0,

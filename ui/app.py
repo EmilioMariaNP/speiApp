@@ -1,11 +1,11 @@
 import os
 import subprocess
 from loguru import logger
-import pandas as pd
+
 
 from processing.events_count import events_count_main
 from processing.gcms_eval import main_gcms_eval
-from utils.utils import load_config, load_dataframe, dump_json_to_file
+from utils.utils import load_config
 
 
 def run_spei_calc_r(config_path):
@@ -45,8 +45,8 @@ if __name__ == "__main__":
         config_dict["projections_csv"] = os.path.join(
             home_dir, config_dict["projections_csv"]
         )
-        config_dict["validation_dataset"] = os.path.join(
-            home_dir, config_dict["validation_dataset"]
+        config_dict["validation_dataset_csv"] = os.path.join(
+            home_dir, config_dict["validation_dataset_csv"]
         )
         config_dict["dry_events_count_csv"] = os.path.join(
             home_dir, config_dict["dry_events_count_csv"]
@@ -59,15 +59,18 @@ if __name__ == "__main__":
         config_dict['gcm_eval_csv'] = os.path.join(home_dir, config_dict['gcm_eval_csv'])
         config_dict['copula_analysis_csv'] = os.path.join(home_dir, config_dict['copula_analysis_csv'])
 
+        growth_season_start = config_dict.get('growth_season_start', 1)
+        growth_season_end = config_dict.get('growth_season_end', 12)
+        growth_season_months = list(range(growth_season_start, growth_season_end + 1))
+        config_dict['spei_3_months'] = growth_season_months
+
     if config_dict:
 
         if config_dict.get("execute_spei", False):
             run_spei_calc_r(config_path)
-            # fix NA values from R
         try:
             if config_dict.get("execute_ks_test", False):
                 config_dict = main_gcms_eval(config_dict)
-                #dump_json_to_file(config_dict, config_path, indent=4)
             if config_dict.get("execute_count", False):
                 events_count_main(config_dict)
 
