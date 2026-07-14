@@ -30,13 +30,17 @@ def run_spei_calc_r(config_path):
 
 
 if __name__ == "__main__":
-    # Standard entrypoint loading the generic config json
-    # config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'config_nut2.json')
-    config_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "data",
-        "config_ecoregions.json",
-    )
+    import sys
+    
+    if len(sys.argv) > 1:
+        config_path = sys.argv[1]
+    else:
+        # Standard entrypoint loading the generic config json
+        config_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data",
+            "config_ecoregions.json",
+        )
     config_dict = load_config(config_path)
 
     # update file paths
@@ -59,8 +63,8 @@ if __name__ == "__main__":
         config_dict['gcm_eval_csv'] = os.path.join(home_dir, config_dict['gcm_eval_csv'])
         config_dict['copula_analysis_csv'] = os.path.join(home_dir, config_dict['copula_analysis_csv'])
 
-        growth_season_start = config_dict.get('growth_season_start', 1)
-        growth_season_end = config_dict.get('growth_season_end', 12)
+        growth_season_start = int(config_dict.get('growth_season_start', 1))
+        growth_season_end = int(config_dict.get('growth_season_end', 12))
         growth_season_months = list(range(growth_season_start, growth_season_end + 1))
         config_dict['spei_3_months'] = growth_season_months
 

@@ -11,7 +11,7 @@
       "type": "string"
     },
     "validation_dataset_csv": {
-      "label": "Validation dataset",
+      "label": "Validation dataset csv",
       "info": "CSV file path of a dataset to be used as validation for the GCMs. This dataset is obtained from field data or remote sensing calculations of water balance.",
       "type": "string"
     },
@@ -32,11 +32,6 @@
     },
     "validation_plots_dir": {
       "label": "Plots folder",
-      "info": "",
-      "type": "string"
-    },
-    "dry_events_len_csv": {
-      "label": "",
       "info": "",
       "type": "string"
     },
@@ -139,7 +134,7 @@
     "growth_season_end": {
       "label": "Growth season end",
       "info": "Last month of the growing season, if specified limits SPEI3 return period analysis to growth season. If set, also Growth season start must be set.",
-      "type": "string"
+      "type": "integer"
     }
   },
   "Copula parameters": {
@@ -151,12 +146,16 @@
     "copula_family": {
       "label": "Copula family",
       "info": "Copula family to be used, default is gumbel. If left ",
-      "type": "string"
+      "type": "string",
+      "options": ["gumbel", "clayton", "frank", "student-t", "normal"],
+      "default": "gumbel"
     },
     "default_distribution": {
       "label": "Default distribution",
       "info": "Distribution to be used for marginal fitting. Leave blank for autofitting (longer computational times).",
-      "type": "string"
+      "type": "string",
+      "options": ["genextreme", "genpareto", "gamma", "lognorm"],
+      "default": "genextreme"
     },
     "exclude_month_events": {
       "label": "Exclude month events",

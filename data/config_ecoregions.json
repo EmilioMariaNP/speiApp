@@ -1,7 +1,7 @@
 {
     "home_dir_lenovo": "/run/media/emilio/data/danube_drought_futures",
     "home_dir": "/home/politti/data/Danube_5min/spei_ecoregions",
-    "execute_spei": false,
+    "execute_spei": true,
     "execute_ks_test": true,
     "execute_count": false,
     "execute_copula": false,
@@ -18,7 +18,7 @@
         7,
         8
     ],
-    "analysis_scenarios": [],
+    "analysis_scenarios": "[]",
     "water_balance_col": "water_balance",
     "projections_csv": "pr_et_water_balance_danube_ecoregions.csv",
     "validation_dataset_csv": "water_balance_danube_ecoregions_cru.csv",
@@ -55,7 +55,7 @@
     "default_distribution": "genextreme",
     "exclude_month_events": true,
     "growth_season_start": 3,
-    "growth_season_end": 9,
+    "growth_season_end": 9.0,
     "valid_gcms": [
         {
             "region": "Pontic Province",
@@ -137,5 +137,6 @@
             "p-value": 0.9985,
             "passed": true
         }
-    ]
+    ],
+    "dry_events_len_csv": ""
 }
