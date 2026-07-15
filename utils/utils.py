@@ -36,6 +36,10 @@ def filter_by_overlapping_years(df_a, df_b):
     return df_a, df_b
 
 def save_dataframe(df, csv_file):
+
+    # make sure path exists
+    os.makedirs(os.path.dirname(csv_file), exist_ok=True)
+
     df.to_csv(csv_file, index=False)
     logger.info(f"Successfully saved dataframe to {csv_file}")
     return 0

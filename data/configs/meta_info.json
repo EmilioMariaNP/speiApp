@@ -1,0 +1,18 @@
+{
+    "Copula analysis": {
+        "Return period": "The baseline univariate return period (in years) used as the target for threshold selection. For example, a value of 10 indicates a 1-in-10-year drought event.",
+        "Hist_Duration_Thresh": "The drought duration threshold (in months) corresponding to the target return period in the reference (historical) period. A historical drought event lasting at least this many months has an average return period of T years.",
+        "Hist_Intensity_Thresh": "The absolute drought intensity threshold corresponding to the target return period in the reference (historical) period. A historical drought event with an intensity equal to or exceeding this threshold has an average return period of T years.",
+        "Proj_Duration_Thresh": "The projected future drought duration threshold (in months) corresponding to the target return period. A future drought event lasting at least this many months has an average return period of T years under the future climate scenario.",
+        "Proj_Intensity_Thresh": "The projected future absolute drought intensity threshold corresponding to the target return period. A future drought event with an intensity equal to or exceeding this threshold has an average return period of T years under the future climate scenario.",
+        "Ref_Joint_T": "The joint return period (in years) in the reference (historical) period where both duration AND intensity thresholds are simultaneously exceeded. Since both conditions must be met, this joint return period is always longer than the individual return period T.",
+        "Proj_Joint_T": "The joint return period (in years) in the projected (future) period where both duration AND intensity thresholds are simultaneously exceeded under the future scenario.",
+        "Likelihood_Change": "The ratio of the historical joint return period to the projected joint return period (Ref_Joint_T / Proj_Joint_T). A ratio greater than 1.0 indicates that the joint return period decreases in the future, meaning severe droughts will occur more frequently (e.g., 2.0 means twice as frequent). A ratio less than 1.0 means severe joint droughts will become less frequent.",
+        "Copula_Family_Ref": "The copula family (e.g., GumbelCopula, FrankCopula, ClaytonCopula, NormalCopula, StudentCopula) selected to model the joint dependence structure between drought duration and intensity in the reference period.",
+        "Copula_Family_Proj": "The copula family selected to model the joint dependence structure between drought duration and intensity in the projected future period. Comparing this to the reference family helps identify changes in the correlation structure under climate change.",
+        "dist_info_dur_ref": "The name of the marginal distribution family (e.g., gamma, lognorm) that best fits the drought duration values in the reference period.",
+        "dist_info_intensity_ref": "The name of the marginal distribution family (e.g., gamma, lognorm) that best fits the drought absolute intensity values in the reference period.",
+        "dist_info_dur_proj": "The name of the marginal distribution family (e.g., gamma, lognorm) that best fits the drought duration values in the projected future period.",
+        "dist_info_intensity_proj": "The name of the marginal distribution family (e.g., gamma, lognorm) that best fits the drought absolute intensity values in the projected future period."
+    }
+}

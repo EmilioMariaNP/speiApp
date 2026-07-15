@@ -122,9 +122,12 @@ def select_best_copula(df, columns=None):
     Fits multiple copula families and selects the one with the lowest BIC.
     """
     # 1. Transform data to pseudo-observations (Uniform [0, 1])
-    if columns is None:
-        columns = ["duration", "intensity"]
-    u = pseudo_obs(df[columns])
+    if isinstance(df, np.ndarray):
+        u = df
+    else:
+        if columns is None:
+            columns = ["duration", "intensity"]
+        u = pseudo_obs(df[columns])
 
     # 2. Define candidate families
     # dim=2 for bivariate (Duration, Intensity)
@@ -145,16 +148,26 @@ def select_best_copula(df, columns=None):
             cop.fit(u)
 
             # Record the score (BIC is usually preferred for model selection)
+            ll = cop.log_lik(u)
+            n = len(u)
+            k = 2 if type(cop).__name__ == "StudentCopula" else 1
+            bic_val = -2 * ll + np.log(n) * k
+            aic_val = -2 * ll + 2 * k
+
             results.append({
                 'family': type(cop).__name__,
                 'obj': cop,
-                'bic': cop.bic(u),
-                'aic': cop.aic(u)
+                'bic': bic_val,
+                'aic': aic_val
             })
         except Exception as e:
             logger.error(f"Could not fit {type(cop).__name__}: {e}")
 
     # 3. Sort by BIC and pick the best
+    if not results:
+        logger.error("All copula candidates failed to fit.")
+        raise ValueError("Could not fit any copula family.")
+
     results_df = pd.DataFrame(results).sort_values('bic')
     best_fit = results_df.iloc[0]
 
@@ -418,6 +431,10 @@ def analyze_return_periods(events_df,
 
     ref_data = events_df[(events_df["start_year"] >= ref_start_year) & (events_df["start_year"] <= ref_end_year)]
     proj_data = events_df[(events_df["start_year"] >= proj_start_year) & (events_df["start_year"] <= proj_end_year)]
+
+    if len(ref_data) < 5 or len(proj_data) < 5:
+        logger.warning(f"Insufficient data points for copula analysis (Ref events: {len(ref_data)}, Proj events: {len(proj_data)}). Skipping.")
+        return pd.DataFrame()
 
     # Calculate average events per year (E) for each period
     ref_years = ref_data["start_year"].max() - ref_data["start_year"].min() + 1
@@ -697,17 +714,6 @@ def main_copula_nn_station(config):
     proj_start_year = config['proj_start_year']
 
     spatial_unit_col = config["spatial_unit_col"]
-
-    # datasets_data = config["datasets"]
-    # datasets_keys = list(datasets_data.keys())
-    # validation_datasets = config["validation_datasets"]
-    # proj_datasets_keys = [x for x in datasets_keys if x not in validation_datasets]
-
-    # ref_scenario = config['datasets']['projections']['reference_scenario']
-    # analysis_scenarios = config['scenario']
-    # if len(analysis_scenarios) > 0 and ref_scenario not in analysis_scenarios:
-    #     analysis_scenarios.append(ref_scenario)
-
     spei_scales = config.get('spei_indices', [3, 12])
 
     copula_family = config.get('copula_family', 'gumbel')
@@ -728,7 +734,6 @@ def main_copula_nn_station(config):
     copula_csv = config.get('copula_analysis_csv', None)
     gcm_eval_csv = config.get('gcm_eval_csv', None)
     return_periods_csv = config["return_periods_csv"]
-    # plots_dir = os.path.join(work_dir, 'frequency', 'plots')
 
 
     logger.info('Starting non-stationary copula analysis...')
@@ -807,11 +812,12 @@ def main_copula_nn_station(config):
                             return_periods=return_periods
                         )
 
-                        df_cop_analysis["scenario"] = scenario
-                        df_cop_analysis["gcm"] = gcm
-                        df_cop_analysis["spei"] = spei_scale
-                        df_cop_analysis[spatial_unit_col] = su
-                        df_copuls_list.append(df_cop_analysis)
+                        if not df_cop_analysis.empty:
+                            df_cop_analysis["scenario"] = scenario
+                            df_cop_analysis["gcm"] = gcm
+                            df_cop_analysis["spei"] = spei_scale
+                            df_cop_analysis[spatial_unit_col] = su
+                            df_copuls_list.append(df_cop_analysis)
                     else:
                         logger.info(f"GCM {gcm} not fit for {spei_col} in {su}. Skipping the GCM.")
 
@@ -822,8 +828,8 @@ def main_copula_nn_station(config):
 
 
 if __name__ == "__main__":
-    # config_file = "../data/ecoregions/workflow_config_ecoregions.json"
-    config_file = "../data/config_ecoregions.json"
+    config_file = "../data/config_nut2.json"
+    # config_file = "../data/config_ecoregions.json"
 
     config = load_config(config_file)
 

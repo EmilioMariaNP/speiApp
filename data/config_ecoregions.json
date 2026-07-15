@@ -37,7 +37,7 @@
     "return_periods_csv": "copula_analysis/return_periods.csv",
     "validation_plots_dir": "",
     "gcm_eval_csv": "validation/gcm_evaluation.csv",
-    "copula_analysis_csv": "outs_test/copula_analysis.csv",
+    "copula_analysis_csv": "copula_analysis/copula_analysis.csv",
     "spei_threshold": -1.0,
     "ref_start_year": 1950,
     "ref_end_year": 2010,
