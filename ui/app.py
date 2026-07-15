@@ -1,8 +1,9 @@
 import os
 import subprocess
 from loguru import logger
+import sys
 
-
+from processing.copula_analysis_nn_station import main_copula_nn_station
 from processing.events_count import events_count_main
 from processing.gcms_eval import main_gcms_eval
 from utils.utils import load_config
@@ -30,7 +31,10 @@ def run_spei_calc_r(config_path):
 
 
 if __name__ == "__main__":
-    import sys
+
+    #config_file_name = "config_ecoregions.json"
+    config_file_name = 'config_nut2.json'
+
     
     if len(sys.argv) > 1:
         config_path = sys.argv[1]
@@ -39,7 +43,7 @@ if __name__ == "__main__":
         config_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "data",
-            "config_ecoregions.json",
+            config_file_name
         )
     config_dict = load_config(config_path)
 
@@ -77,6 +81,8 @@ if __name__ == "__main__":
                 config_dict = main_gcms_eval(config_dict)
             if config_dict.get("execute_count", False):
                 events_count_main(config_dict)
+            if config_dict.get("execute_copula", False):
+                main_copula_nn_station(config_dict)
 
         except Exception as e:
             logger.error(e)

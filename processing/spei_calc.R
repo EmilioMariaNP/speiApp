@@ -55,6 +55,12 @@ calculate_spei <- function(
   if (!"region" %in% colnames(val_df)) {
     stop(paste("Spatial unit column '", spatial_unit_column, "' not found in validation dataset."))
   }
+  # if (!spatial_unit_column %in% colnames(sim_df)) {
+  #   stop(paste("Spatial unit column '", spatial_unit_column, "' not found in simulation dataset."))
+  # }
+  # if (!spatial_unit_column %in% colnames(val_df)) {
+  #   stop(paste("Spatial unit column '", spatial_unit_column, "' not found in validation dataset."))
+  # }
   if (!water_balance_col %in% colnames(sim_df)) {
     stop(paste("Water balance column '", water_balance_col, "' not found in simulation dataset."))
   }
@@ -179,6 +185,12 @@ calculate_spei <- function(
   
   final_df <- final_df %>% 
     select(all_of(required_cols))
+
+  # renme the spatial unit column to its original name
+  if (spatial_unit_column != "region" && "region" %in% colnames(final_df)) {
+    final_df <- final_df %>%
+      rename(!!spatial_unit_column := region)
+  }
 
   
   # 7. Write output to CSV

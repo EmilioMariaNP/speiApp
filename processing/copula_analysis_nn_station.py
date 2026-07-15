@@ -716,13 +716,13 @@ def main_copula_nn_station(config):
     exclude_month_events = config.get('exclude_month_events', True)  # exclude drought events of 1 month length --> create noise and are not necessarily drought events
 
     # use the whole year if growth season not provided
-    growth_season_start = config.get('growth_season_start', 1)
-    growth_season_end = config.get('growth_season_end', 12)
+    growth_season_start = int(config.get('growth_season_start', 1))
+    growth_season_end = int(config.get('growth_season_end', 12))
     growth_season_months = list(range(growth_season_start, growth_season_end + 1))
 
     return_periods = config.get('return_periods', [5, 10])
     ref_scenario = config.get('reference_scenario', 'historical')
-    analysis_scenarios = config.get('analysis_scenarios', [])
+    analysis_scenarios = config.get('analysis_scenarios', None)
 
     events_csv = config["dry_events_csv"]
     copula_csv = config.get('copula_analysis_csv', None)
@@ -749,12 +749,12 @@ def main_copula_nn_station(config):
 
     gcms = df_events["gcm"].unique().tolist()
 
-    if len(analysis_regions) == 0:
+    if analysis_regions is not None or len(analysis_regions) == 0:
         spatial_units = df_events[spatial_unit_col].unique().tolist()
     else:
         spatial_units = analysis_regions  # limits the analysis to a subset of regions
 
-    if len(analysis_scenarios) == 0:
+    if analysis_scenarios is None or len(analysis_scenarios) == 0:
         scenarios = df_events["scenario"].unique().tolist()
         scenarios.remove(ref_scenario)
     else:
@@ -817,6 +817,7 @@ def main_copula_nn_station(config):
 
 
     df_copulas = pd.concat(df_copuls_list, ignore_index=True)
+    os.makedirs(os.path.dirname(copula_csv), exist_ok=True)
     save_dataframe(df=df_copulas, csv_file=copula_csv)
 
 

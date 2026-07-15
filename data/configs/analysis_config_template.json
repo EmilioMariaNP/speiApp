@@ -1,6 +1,6 @@
 {
-    "home_dir": "/home/politti/data/Danube_5min/spei_nuts_2",
-    "execute_spei": false,
+    "home_dir": "",
+    "execute_spei": true,
     "execute_ks_test": true,
     "execute_count": true,
     "execute_copula": true,
@@ -9,27 +9,28 @@
         12
     ],
     "reference_scenario": "historical",
-    "analysis_scenarios": [],
+    "spei_3_months": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+    ],
+    "analysis_scenarios": "[]",
     "water_balance_col": "water_balance",
-    "projections_csv": "water_balance_danube_nuts2.csv",
-    "validation_dataset_csv": "water_balance_danube_nuts2_cru.csv",
-    "spatial_unit_col": "NUTS_ID",
+    "projections_csv": "water_balance_projections.csv",
+    "validation_dataset_csv": "water_balance_validation.csv",
+    "spatial_unit_col": "",
     "spatial_units": [
-        "AT11",
-        "RO22"
     ],
-    "spatial_units_bak": [
-        "AT11",
-        "SK04",
-        "RO12"
-    ],
-    "spei_csv": "nuts_2_spei.csv",
+    "spei_csv": "spei.csv",
     "dry_events_csv": "drought_counts/dry_events.csv",
     "dry_events_count_csv": "drought_counts/dry_events_count.csv",
-    "gcm_eval_csv": "validation/gcm_evaluation.csv",
-    "copula_analysis_csv": "copula_analysis/nuts_2_copula_analysis.csv",
     "return_periods_csv": "copula_analysis/return_periods.csv",
     "validation_plots_dir": "",
+    "gcm_eval_csv": "validation/gcm_evaluation.csv",
+    "copula_analysis_csv": "outs_test/copula_analysis.csv",
     "spei_threshold": -1.0,
     "ref_start_year": 1950,
     "ref_end_year": 2010,
@@ -44,8 +45,8 @@
         100
     ],
     "copula_family": "gumbel",
-    "default_distribution": null,
+    "default_distribution": "genextreme",
     "exclude_month_events": true,
     "growth_season_start": 3,
-    "growth_season_end": 9
+    "growth_season_end": 9.0
 }
