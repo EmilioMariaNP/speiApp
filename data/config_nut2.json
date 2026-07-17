@@ -48,5 +48,6 @@
     "growth_season_start": 3,
     "growth_season_end": 9,
     "scenarios_order": ["SSP1-2.6", "SSP2-4.5", "SSP3-7.0", "SSP5-8.5"],
-    "return_periods_plots": [5, 10, 30, 50]
+    "return_periods_plots": [5, 10, 30, 50],
+    "plot_spatial_units": []
 }

@@ -9,6 +9,8 @@ import matplotlib.patches as mpatches
 from matplotlib.ticker import ScalarFormatter
 import contextily as cx
 import os
+import numpy as np
+import random
 
 from utils.utils import load_config
 
@@ -105,8 +107,6 @@ def plot_scenario_ri(gdf, df_likelihood, spei_scale, return_interval, sup_title,
   gdf_plot['color'] = gdf_plot['Likelihood_Change'].apply(get_color)
   gdf_plot['alpha'] = gdf_plot['Likelihood_Change_cv'].apply(get_alpha)
 
-
-
   # Create the plot
   fig, axes = plt.subplots(2, 2, figsize=(20, 18))
   axes_flat = axes.flatten()
@@ -167,8 +167,6 @@ def plot_spei_maps(config):
     spatial_units_shapefile = config['spatial_units_shapefile']
     scenarios_order = config_dict.get("scenarios_order", [])
 
-
-
     gdf = gpd.read_file(spatial_units_shapefile)  # ecoregions shapefile
     df = pd.read_csv(copula_aggregation_csv)  # copula gcm-aggregated results
 
@@ -193,7 +191,63 @@ def plot_spei_maps(config):
 
 
 
+def plot_sepi_dotplots(config):
 
+    spatial_unit_col = config['spatial_unit_col']
+    copula_analysis_csv = config['copula_analysis_csv']
+    return_periods_plots = config['return_periods_plots']
+    plot_spatial_units = config.get('plot_spatial_units', [])
+
+
+    df = pd.read_csv(copula_analysis_csv)  # copula results
+
+    if plot_spatial_units is None or len(plot_spatial_units) == 0:
+        plot_spatial_units = df[spatial_unit_col].unique().tolist()
+
+        # TODO: debug (for fast plotting)
+        plot_spatial_units = random.sample(plot_spatial_units, 3)
+
+    df = df[df[spatial_unit_col].isin(plot_spatial_units)]
+
+    # convert to %
+    #df['Likelihood_Change'] = round((df['Likelihood_Change'] - 1) * 100, 0)
+
+    df.sort_values('scenario', inplace = True)
+
+
+    # Filter the DataFrame for the desired SPEI index
+    df_filtered = df[(df['spei'] == 3) & (df['Return period'].isin(return_periods_plots))]
+
+    # Create the FacetGrid
+    g = sns.FacetGrid(
+        df_filtered,
+        row=spatial_unit_col,
+        col="scenario",
+        height=4,
+        aspect=1.5,
+        margin_titles=True
+    )
+
+    # Map a line plot onto the grid, using median as the estimator
+    g.map_dataframe(
+        sns.pointplot,
+        x="Return period",
+        y="Likelihood_Change",
+        estimator=np.median,
+        errorbar='ci',
+        linestyle='none',
+        # join=False
+    )
+
+    # Set titles and labels for clarity
+    g.set_axis_labels("Return Period", "Likelihood Change (Median)")
+    g.set_titles(col_template="{col_name}", row_template="{row_name}")
+    g.refline(y=1, color="red", linestyle="--")
+    g.set(ylim=(-5, 50))
+
+    # Adjust layout and display the plot
+    plt.tight_layout()
+    plt.show()
 
 
 
@@ -222,6 +276,7 @@ if __name__ == "__main__":
         config_dict["dry_events_csv"] = os.path.join(
             home_dir, config_dict["dry_events_csv"]
         )
+        config_dict['copula_analysis_csv'] = os.path.join(home_dir, config_dict['copula_analysis_csv'])
         config_dict['spei_csv'] = os.path.join(home_dir, config_dict["spei_csv"])
         config_dict['copula_analysis_aggregation_csv'] = os.path.join(home_dir, config_dict['copula_analysis_aggregation_csv'])
 
@@ -229,7 +284,8 @@ if __name__ == "__main__":
 
     if config_dict and spatial_units_shapefile:
 
-        plot_spei_maps(config_dict)
+        #plot_spei_maps(config_dict)
+        plot_sepi_dotplots(config_dict)
 
 
 
