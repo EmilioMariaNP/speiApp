@@ -12,106 +12,14 @@ from loguru import logger
 from utils.utils import load_config, load_dataframe, save_dataframe
 import pandas as pd
 from scipy import stats
-from copulae import (
-    GumbelCopula as OriginalGumbelCopula,
-    FrankCopula,
-    ClaytonCopula,
-    StudentCopula,
-    GumbelCopula,
-    # JoeCopula,
-    NormalCopula
-)
+import pyvinecopulib as pv
 from fitter import Fitter
 import scipy.stats as st
 import scipy.optimize as optimize
-from copulae import pseudo_obs
 
-
-# --- HOTFIX FOR NUMPY 2.0+ & COPULAE ---
-def patch_copula_method(CopulaClass, method_name):
-    if hasattr(CopulaClass, method_name):
-        original_method = getattr(CopulaClass, method_name)
-
-        def wrapped_method(self, arg):
-            if isinstance(arg, np.ndarray) and arg.size == 1:
-                arg = arg.item()
-            return original_method(self, arg)
-
-        setattr(CopulaClass, method_name, wrapped_method)
-
-
-def patch_copula_params(CopulaClass):
-    original_prop = getattr(CopulaClass, "params", None)
-    if not original_prop:
-        return
-
-    def get_params(self):
-        return original_prop.fget(self)
-
-    def set_params(self, value):
-        if isinstance(value, np.ndarray) and value.size == 1:
-            value = value.item()
-        original_prop.fset(self, value)
-
-    CopulaClass.params = property(get_params, set_params)
-
-
-for c in [OriginalGumbelCopula, ClaytonCopula, FrankCopula, GumbelCopula, StudentCopula, NormalCopula]:
-    patch_copula_params(c)
-    patch_copula_method(c, "itau")
-
-# Patch copulae's squeeze_output for numpy 2.0
-import copulae.utility.annotations.reshape as cop_reshape
-
-original_squeeze = cop_reshape.squeeze_output
-
-
-def patched_squeeze_output(method):
-    wrapper = original_squeeze(method)
-
-    def new_wrapper(*args, **kwargs):
-        res = wrapper(*args, **kwargs)
-        if isinstance(res, np.ndarray) and res.size == 1:
-            return float(res.item())
-        return res
-
-    return new_wrapper
-
-
-cop_reshape.squeeze_output = patched_squeeze_output
-
-
-# also patch it inside the already decorated methods if necessary, or just rely on catching the error locally:
-# Actually, the error happens inside `squeeze_output` before we can intercept it!
-# So we need to overwrite the `squeeze_output` function in `copulae.utility.annotations.reshape`.
-# Wait, the decorator is already applied to `cdf`. We can't un-decorate it easily.
-# But we can patch float! We can't patch built-in float.
-# Let's intercept `cdf` and `fit` directly on the copula objects.
-
-def patch_copula_cdf(CopulaClass):
-    if hasattr(CopulaClass, "cdf"):
-        orig_cdf = getattr(CopulaClass, "cdf")
-
-        def safe_cdf(self, x):
-            try:
-                res = orig_cdf(self, x)
-                return res
-            except TypeError as e:
-                # bypass squeeze_output if it fails
-                if "0-dimensional arrays can be converted" in str(e):
-                    # call the internal un-decorated cdf if possible, or just
-                    res = self._cdf(np.asarray(x)) if hasattr(self, "_cdf") else self.psi(
-                        self.ipsi(np.asarray(x)).sum(1))
-                    if isinstance(res, np.ndarray) and res.size == 1:
-                        return float(res.item())
-                    return res
-                raise
-
-        setattr(CopulaClass, "cdf", safe_cdf)
-
-
-for c in [OriginalGumbelCopula, ClaytonCopula, FrankCopula, GumbelCopula, StudentCopula, NormalCopula]:
-    patch_copula_cdf(c)
+def get_upper_tail_dependence(cop, u=0.9999):
+    c_val = cop.cdf(np.array([[u, u]]))
+    return max(0.0, min((1 - 2*u + c_val[0]) / (1 - u), 1.0))
 
 
 # ---------------------------------------
@@ -119,62 +27,30 @@ for c in [OriginalGumbelCopula, ClaytonCopula, FrankCopula, GumbelCopula, Studen
 
 def select_best_copula(df, columns=None):
     """
-    Fits multiple copula families and selects the one with the lowest BIC.
+    Fits multiple copula families and selects the one with the lowest BIC using pyvinecopulib.
     """
-    # 1. Transform data to pseudo-observations (Uniform [0, 1])
     if isinstance(df, np.ndarray):
         u = df
     else:
         if columns is None:
             columns = ["duration", "intensity"]
-        u = pseudo_obs(df[columns])
+        u = pv.to_pseudo_obs(df[columns].values)
 
-    # 2. Define candidate families
-    # dim=2 for bivariate (Duration, Intensity)
-    candidates = [
-        GumbelCopula(dim=2),
-        FrankCopula(dim=2),
-        ClaytonCopula(dim=2),
-        # JoeCopula(dim=2),
-        NormalCopula(dim=2),
-        StudentCopula(dim=2)
+    family_set = [
+        pv.BicopFamily.gaussian, pv.BicopFamily.student, pv.BicopFamily.clayton,
+        pv.BicopFamily.gumbel, pv.BicopFamily.frank, pv.BicopFamily.joe,
+        pv.BicopFamily.bb1, pv.BicopFamily.bb6, pv.BicopFamily.bb7, pv.BicopFamily.bb8,
+        pv.BicopFamily.tawn
     ]
+    controls = pv.FitControlsBicop(family_set=family_set, selection_criterion="bic")
+    
+    cop = pv.Bicop()
+    cop.select(data=u, controls=controls)
 
-    results = []
-
-    for cop in candidates:
-        try:
-            # Fit the copula
-            cop.fit(u)
-
-            # Record the score (BIC is usually preferred for model selection)
-            ll = cop.log_lik(u)
-            n = len(u)
-            k = 2 if type(cop).__name__ == "StudentCopula" else 1
-            bic_val = -2 * ll + np.log(n) * k
-            aic_val = -2 * ll + 2 * k
-
-            results.append({
-                'family': type(cop).__name__,
-                'obj': cop,
-                'bic': bic_val,
-                'aic': aic_val
-            })
-        except Exception as e:
-            logger.error(f"Could not fit {type(cop).__name__}: {e}")
-
-    # 3. Sort by BIC and pick the best
-    if not results:
-        logger.error("All copula candidates failed to fit.")
-        raise ValueError("Could not fit any copula family.")
-
-    results_df = pd.DataFrame(results).sort_values('bic')
-    best_fit = results_df.iloc[0]
-
-    logger.info(f"Best Copula Family: {best_fit['family']} (BIC: {best_fit['bic']:.2f})")
-
-    # best_copula_obj, results_df, best_name
-    return best_fit['obj'], results_df, best_fit['family']
+    logger.info(f"Best Copula Family: {cop.family.name} (BIC: {cop.bic(u):.2f})")
+    
+    # Return the copula object, None for rank_df (no longer needed), and family name
+    return cop, None, cop.family.name
 
 
 def select_best_drought_distribution(df, column_name):
@@ -183,6 +59,9 @@ def select_best_drought_distribution(df, column_name):
     Returns the best fit among: Generalised Extreme Value (GEV), Generalised Pareto Distribution (GPD),
     Time Varying Gamma Distribution, log normal.
     """
+    import warnings
+    warnings.filterwarnings('ignore', category=RuntimeWarning)
+    
     data = df[column_name].dropna().values
     years = df.loc[df[column_name].notna(), 'start_year'].values
 
@@ -321,7 +200,7 @@ def select_best_drought_distribution(df, column_name):
 
     # 3. Manual Anderson-Darling Check (Optional but Recommended)
     # This helps confirm if the 'best' distribution actually fits the tails well
-    fit_score = 0
+    fit_score = 1 # acceptable fit
     try:
         # Get the scipy distribution object
         dist_obj = getattr(st, best_dist_name)
@@ -343,14 +222,14 @@ def select_best_drought_distribution(df, column_name):
         is_satisfactory = res.pvalue > 0.05
         if is_satisfactory:
             logger.info(f"Fit is statistically significant (p={res.pvalue:.4f})")
-            fit_score = 1
+            fit_score = 2 # good fit
         else:
             # Check if it's "close enough" for climate work
             if res.pvalue > 0.01:
                 logger.warning(f"Weak fit (p={res.pvalue:.4f}), but likely acceptable for large GCM sets.")
             else:
                 logger.warning(f"Poor fit (p={res.pvalue:.4f}). Return periods may be unreliable.")
-                fit_score = -1
+                fit_score = 0 # poor fit
 
     except Exception as e:
         logger.warning(f"Could not calculate specific GoF: {e}")
@@ -368,49 +247,44 @@ def run_drought_copula_analysis(events_df, cutoff_year, copula_family="gumbel"):
     periods = {"Reference": ref, "Projection": proj}
     results = {}
 
+    family_map = {
+        "gumbel": pv.BicopFamily.gumbel,
+        "clayton": pv.BicopFamily.clayton,
+        "frank": pv.BicopFamily.frank,
+        "student-t": pv.BicopFamily.student,
+        "t": pv.BicopFamily.student,
+        "normal": pv.BicopFamily.gaussian,
+        "joe": pv.BicopFamily.joe
+    }
+
     for name, data in periods.items():
-        if len(data) < 10:  # Increased minimum sample size for stability
+        if len(data) < 10:
             logger.warning(f"Warning: Not enough data for {name} period.")
             continue
 
-        # 1. Marginal Fitting and Transformation
         u_list = []
         for col in ["duration", "intensity_abs"]:
             params = stats.gamma.fit(data[col], floc=0)
             u_vars = stats.gamma.cdf(data[col], *params)
             u_list.append(u_vars)
 
-        # 2. Force U into a clean NumPy array of floats
         U = np.column_stack(u_list).astype(np.float64)
 
         try:
-            # 3. Initialize and Fit
-            # dim=2 for bivariate (Duration, Intensity)
-            family = copula_family.lower()
-            if family == "gumbel":
-                cop = OriginalGumbelCopula(dim=2)
-            elif family == "clayton":
-                cop = ClaytonCopula(dim=2)
-            elif family == "frank":
-                cop = FrankCopula(dim=2)
-            elif family in ["student-t", "t"]:
-                cop = StudentCopula(dim=2)
-            elif family == "normal":
-                cop = NormalCopula(dim=2)
-            else:
+            fam_enum = family_map.get(copula_family.lower())
+            if not fam_enum:
                 raise ValueError(f"Unknown copula family: {copula_family}")
+            
+            cop = pv.Bicop(family=fam_enum)
+            cop.fit(data=U)
+            
+            lam_u = get_upper_tail_dependence(cop)
 
-            # Use 'ml' (Maximum Likelihood) method explicitly
-            # If it still fails, try method='mpl'
-            cop.fit(U, method="ml")
-
-            # 4. Extract Metrics
-            # Note: cop.tau and cop.lambda_ return values based on the fitted parameter
             results[name] = {
                 "Copula Family": copula_family.capitalize(),
-                "Parameter": float(cop.params),
+                "Parameter": float(cop.parameters[0][0]) if cop.parameters.size > 0 else np.nan,
                 "Kendall_Tau": float(cop.tau),
-                "Upper_Tail_Dep": float(cop.lambda_[1]),
+                "Upper_Tail_Dep": float(lam_u),
             }
         except Exception as e:
             logger.error(f"Error fitting {name} period: {e}")
@@ -480,44 +354,31 @@ def analyze_return_periods(events_df,
         u = np.column_stack(
             [apply_dist(dist_info_subset[col], "cdf", data[col]) for col in variables]
         )
-        # Ensure u is within (0, 1) to avoid numerical issues in fitting
         u = np.clip(u, 0.00001, 0.99999)
 
         cop = None
         if copula_family is None:
-            # Find the best copula family for the data
             logger.info('Searching best copula family...')
             cop, _cop_rank_df, copula_family_selected = select_best_copula(u)
-
         else:
             copula_family_selected = copula_family
             _cop_rank_df = None
             logger.info(f'Fitting copula using {copula_family_selected} family...')
+            family_map = {
+                "gumbel": pv.BicopFamily.gumbel,
+                "clayton": pv.BicopFamily.clayton,
+                "frank": pv.BicopFamily.frank,
+                "student-t": pv.BicopFamily.student,
+                "t": pv.BicopFamily.student,
+                "normal": pv.BicopFamily.gaussian,
+                "joe": pv.BicopFamily.joe
+            }
             try:
-                # 3. Initialize and Fit
-                # dim=2 for bivariate (Duration, Intensity)
-                family = copula_family.lower()
-                if family == "gumbel":
-                    cop = OriginalGumbelCopula(dim=2)
-                elif family == "clayton":
-                    cop = ClaytonCopula(dim=2)
-                elif family == "frank":
-                    cop = FrankCopula(dim=2)
-                elif family in ["student-t", "t"]:
-                    cop = StudentCopula(dim=2)
-                elif family == "normal":
-                    cop = NormalCopula(dim=2)
-                else:
-                    raise ValueError(f"Unknown copula family: {copula_family}")
-
-                # Use 'ml' (Maximum Likelihood) method explicitly
-                cop.fit(u, method="ml")
+                fam_enum = family_map.get(copula_family.lower())
+                cop = pv.Bicop(family=fam_enum)
+                cop.fit(data=u)
             except Exception as e:
-                logger.warning(f"Error fitting {name} period with ML ({e}). Falling back to 'itau' method.")
-                try:
-                    cop.fit(u, method="itau")
-                except Exception as e2:
-                    logger.error(f"Error fitting {name} period with itau: {e2}")
+                logger.error(f"Error fitting {name} period: {e}")
 
         return cop, _cop_rank_df, copula_family_selected
 
@@ -559,8 +420,7 @@ def analyze_return_periods(events_df,
         u_ref = float(apply_dist(dist_info["Ref"]["duration"], "cdf", d_thresh))
         v_ref = float(apply_dist(dist_info["Ref"]["intensity"], "cdf", i_thresh))
 
-        # Hack to bypass numpy 2.0 TypeError in copulae's squeeze_output: pass array of length 2
-        c_ref_arr = cop_ref.cdf([[u_ref, v_ref], [u_ref, v_ref]])
+        c_ref_arr = cop_ref.cdf(np.array([[u_ref, v_ref]]))
         c_ref_val = float(c_ref_arr[0])
 
         p_joint_ref = 1 - u_ref - v_ref + c_ref_val
@@ -571,12 +431,14 @@ def analyze_return_periods(events_df,
         u_proj = float(apply_dist(dist_info["Proj"]["duration"], "cdf", d_thresh))
         v_proj = float(apply_dist(dist_info["Proj"]["intensity"], "cdf", i_thresh))
 
-        c_proj_arr = cop_proj.cdf([[u_proj, v_proj], [u_proj, v_proj]])
+        c_proj_arr = cop_proj.cdf(np.array([[u_proj, v_proj]]))
         c_proj_val = float(c_proj_arr[0])
 
         p_joint_proj = 1 - u_proj - v_proj + c_proj_val
         p_joint_proj = max(p_joint_proj, 1e-8)  # prevent division by zero
         t_joint_proj = min(1 / (p_joint_proj * e_proj), 10000.0)  # cap at 10,000 years
+
+        likelihood_change = round(t_joint_ref / t_joint_proj, 2) if t_joint_proj > 0 else float('nan')
 
         comparison_results.append(
             {
@@ -587,7 +449,7 @@ def analyze_return_periods(events_df,
                 "Proj_Intensity_Thresh": round(i_thresh_proj, 1),
                 "Ref_Joint_T": round(t_joint_ref, 1),
                 "Proj_Joint_T": round(t_joint_proj, 1),
-                "Likelihood_Change": round(t_joint_ref / t_joint_proj, 2),
+                "Likelihood_Change": likelihood_change,
                 "Copula_Family_Ref": copula_family_selected_ref,
                 "Copula_Family_Proj": copula_family_selected_proj,
                 'dist_info_dur_ref': dist_info["Ref"]["duration"]['name'],
@@ -823,6 +685,14 @@ def main_copula_nn_station(config):
 
 
     df_copulas = pd.concat(df_copuls_list, ignore_index=True)
+
+    # calculate reliability as sum of fit scores
+    df_copulas["reliability"] = (
+        df_copulas["Ref_duration_fit_score"]
+        + df_copulas["Ref_intensity_fit_score"]
+        + df_copulas["Proj_duration_fit_score"]
+        + df_copulas["Proj_intensity_fit_score"]
+    )
     os.makedirs(os.path.dirname(copula_csv), exist_ok=True)
     save_dataframe(df=df_copulas, csv_file=copula_csv)
 

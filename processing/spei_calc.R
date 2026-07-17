@@ -255,10 +255,13 @@ calculate_spei_from_json <- function(config_file) {
   
   return(df_res)
 }
-if (!interactive()) {
-  args <- commandArgs(trailingOnly = TRUE)
-  if (length(args) > 0) {
-    config_file <- args[1]
-    calculate_spei_from_json(config_file)
-  }
-}
+# if (!interactive()) {
+#   args <- commandArgs(trailingOnly = TRUE)
+#   if (length(args) > 0) {
+#     config_file <- args[1]
+#     calculate_spei_from_json(config_file)
+#   }
+# }
+
+config_file <- '/home/politti/git/speiApp/data/config_nut2.json'
+calculate_spei_from_json(config_file)

@@ -14,24 +14,11 @@ def main_copula_aggregation(config):
 
     logger.info("Starting copula aggregation...")
 
-    spei_scales = config.get("spei_indices", [3, 12])
     copula_csv = config.get("copula_analysis_csv", None)
-    return_periods_csv = config["return_periods_csv"]
+    copula_analysis_aggregation_csv = config["copula_analysis_aggregation_csv"]
     spatial_unit_col = config["spatial_unit_col"]
 
     df = load_dataframe(copula_csv)
-
-    return_periods = df["Return period"].unique().tolist()
-    spatial_units = df[spatial_unit_col].unique().tolist()
-    scenarios = df["scenario"].unique().tolist()
-
-    # calculate reliability as sum of fit scores
-    df["reliability"] = (
-        df["Ref_duration_fit_score"]
-        + df["Ref_intensity_fit_score"]
-        + df["Proj_duration_fit_score"]
-        + df["Proj_intensity_fit_score"]
-    )
 
     # average out the likelihood change from the different GCMS weighted by reliability
 
@@ -74,24 +61,24 @@ def main_copula_aggregation(config):
 
     try:
         df_rp = (
-            df.groupby(["Return period", "scenario", spatial_unit_col])
+            df.groupby(["Return period", "scenario", 'spei', spatial_unit_col])
             .apply(calculate_weighted_stats, include_groups=False)
             .reset_index()
         )
     except TypeError:
         df_rp = (
-            df.groupby(["Return period", "scenario", spatial_unit_col])
+            df.groupby(["Return period", "scenario", spatial_unit_col, 'spei'])
             .apply(calculate_weighted_stats)
             .reset_index()
         )
 
-    df_rp.sort_values(by=[spatial_unit_col, "scenario", "Return period"], inplace=True)
+    df_rp.sort_values(by=[spatial_unit_col, "scenario", 'spei', "Return period"], inplace=True)
     df_rp["Likelihood_Change"] = round(df_rp["Likelihood_Change"], 1)
     df_rp["Likelihood_Change_std"] = round(df_rp["Likelihood_Change_std"], 2)
     df_rp["Likelihood_Change_median"] = round(df_rp["Likelihood_Change_median"], 1)
     df_rp["Likelihood_Change_cv"] = round(df_rp["Likelihood_Change_cv"], 2)
 
-    save_dataframe(df_rp, return_periods_csv)
+    save_dataframe(df_rp, copula_analysis_aggregation_csv)
 
 
 if __name__ == "__main__":
@@ -106,8 +93,8 @@ if __name__ == "__main__":
         config["return_periods_csv"] = os.path.join(
             home_dir, config["return_periods_csv"]
         )
-        config["copula_analysis_csv"] = os.path.join(
-            home_dir, config["copula_analysis_csv"]
+        config["copula_analysis_aggregation_csv"] = os.path.join(
+            home_dir, config["copula_analysis_aggregation_csv"]
         )
 
     main_copula_aggregation(config)

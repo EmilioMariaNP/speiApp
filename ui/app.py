@@ -3,6 +3,7 @@ import subprocess
 from loguru import logger
 import sys
 
+from processing.copula_aggregation import main_copula_aggregation
 from processing.copula_analysis_nn_station import main_copula_nn_station
 from processing.events_count import events_count_main
 from processing.gcms_eval import main_gcms_eval
@@ -66,6 +67,8 @@ if __name__ == "__main__":
 
         config_dict['gcm_eval_csv'] = os.path.join(home_dir, config_dict['gcm_eval_csv'])
         config_dict['copula_analysis_csv'] = os.path.join(home_dir, config_dict['copula_analysis_csv'])
+        config_dict['copula_analysis_aggregation_csv'] = os.path.join(
+            home_dir, config_dict['copula_analysis_aggregation_csv'])
 
         growth_season_start = int(config_dict.get('growth_season_start', 1))
         growth_season_end = int(config_dict.get('growth_season_end', 12))
@@ -83,9 +86,12 @@ if __name__ == "__main__":
                 events_count_main(config_dict)
             if config_dict.get("execute_copula", False):
                 main_copula_nn_station(config_dict)
+            if config_dict.get('execute_copula_aggregation', False):
+                main_copula_aggregation(config_dict)
+
 
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
 
     else:
         logger.error("Failed to load config_nut2.json. Exiting.")
