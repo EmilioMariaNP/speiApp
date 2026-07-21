@@ -34,7 +34,8 @@ def run_spei_calc_r(config_path):
 if __name__ == "__main__":
 
     #config_file_name = "config_ecoregions.json"
-    config_file_name = 'config_nut2.json'
+    # config_file_name = 'config_nut2.json'
+    config_file_name = 'config_nut2_1_min.json'
 
     
     if len(sys.argv) > 1:
