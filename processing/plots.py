@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 import pandas as pd
 import geopandas as gpd
+from jupyter_server.transutils import base_dir
 from loguru import logger
 import matplotlib.patches as mpatches
 from matplotlib.ticker import ScalarFormatter
@@ -88,7 +89,7 @@ def get_alpha(val):
     elif val <= 0.7: return 0.5
     else: return 0.3
 
-def plot_scenario_ri(gdf, df_likelihood, spei_scale, return_interval, sup_title, spatial_unit_col, scenarios_order):
+def plot_scenario_ri(gdf, df_likelihood, spei_scale, return_interval, sup_title, spatial_unit_col, scenarios_order, file_path=None):
 
     # Return period	scenario	spei	NUTS	Likelihood_Change	Likelihood_Change_std	Likelihood_Change_median	Likelihood_Change_cv
 
@@ -158,6 +159,10 @@ def plot_scenario_ri(gdf, df_likelihood, spei_scale, return_interval, sup_title,
   plt.suptitle(sup_title, fontsize=20, y=0.95)
   # Adjust layout and reduce vertical space between rows (hspace)
   plt.subplots_adjust(hspace=-0.005, wspace=0.1, top=0.9, bottom=0.1, left=0.05, right=0.95)
+  
+  if file_path is not None:
+      plt.savefig(file_path, bbox_inches='tight')
+      
   plt.show()
 
 def plot_spei_maps(config):
@@ -165,7 +170,9 @@ def plot_spei_maps(config):
     spatial_unit_col = config['spatial_unit_col']
     copula_aggregation_csv = config['copula_analysis_aggregation_csv']
     spatial_units_shapefile = config['spatial_units_shapefile']
-    scenarios_order = config_dict.get("scenarios_order", [])
+    scenarios_order = config.get("scenarios_order", [])
+    plots_dir = config.get('map_plots_dir', 'plots')
+
 
     gdf = gpd.read_file(spatial_units_shapefile)  # ecoregions shapefile
     df = pd.read_csv(copula_aggregation_csv)  # copula gcm-aggregated results
@@ -179,19 +186,20 @@ def plot_spei_maps(config):
 
     for ri in ri_list:
         sup_title = f'{ri} Years SPEI {spei_scale} Drought Likelihood Change'
+        plot_file = f'{ri}_years_spei_{spei_scale}_likelihood_change.png'
+        plot_file = os.path.join(plots_dir, plot_file)
         plot_scenario_ri(gdf=gdf,
                          df_likelihood=df,
                          spei_scale=spei_scale,
                          return_interval=ri,
                          sup_title=sup_title,
                          spatial_unit_col = spatial_unit_col,
-                         scenarios_order = scenarios_order
+                         scenarios_order = scenarios_order,
+                         file_path=plot_file
                          )
 
 
-
-
-def plot_sepi_dotplots(config):
+def plot_spei_dotplots(config):
 
     spatial_unit_col = config['spatial_unit_col']
     copula_analysis_csv = config['copula_analysis_csv']
@@ -256,7 +264,8 @@ def plot_sepi_dotplots(config):
 if __name__ == "__main__":
 
     # config_file_name = "config_ecoregions.json"
-    config_file_name = 'config_nut2.json'
+    # config_file_name = 'config_nut2.json'
+    config_file_name = 'config_nut2_1_min.json'
 
     config_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -284,8 +293,8 @@ if __name__ == "__main__":
 
     if config_dict and spatial_units_shapefile:
 
-        #plot_spei_maps(config_dict)
-        plot_sepi_dotplots(config_dict)
+        plot_spei_maps(config_dict)
+        #plot_spei_dotplots(config_dict)
 
 
 

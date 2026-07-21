@@ -103,8 +103,13 @@ calculate_spei <- function(
     ts_data <- ts(reg_df[[water_balance_col]], frequency = 12, start = c(val_min_year, val_min_month))
     
     for (scale in spei_scales) {
-      spei_res <- spei(ts_data, scale = scale, ref.start = ref_start, ref.end = ref_end)
-      reg_df[[paste0("spei", scale)]] <- as.numeric(spei_res$fitted)
+      if ((ref_start[1] * 12 + ref_start[2]) > (ref_end[1] * 12 + ref_end[2])) {
+        warning(paste("Reference period outside data range for validation region", reg, "- assigning NA"))
+        reg_df[[paste0("spei", scale)]] <- NA
+      } else {
+        spei_res <- spei(ts_data, scale = scale, ref.start = ref_start, ref.end = ref_end)
+        reg_df[[paste0("spei", scale)]] <- as.numeric(spei_res$fitted)
+      }
     }
     
     # Enforce scenario = 'validation' and gcm = validation_label
@@ -161,8 +166,13 @@ calculate_spei <- function(
             ref_end <- c(comb_max_year, comb_max_month)
           }
           
-          spei_res <- spei(ts_data, scale = scale, ref.start = ref_start, ref.end = ref_end)
-          combined_sub[[paste0("spei", scale)]] <- as.numeric(spei_res$fitted)
+          if ((ref_start[1] * 12 + ref_start[2]) > (ref_end[1] * 12 + ref_end[2])) {
+            warning(paste("Reference period outside data range for region", reg, "GCM", g, "SSP", ssp, "- assigning NA"))
+            combined_sub[[paste0("spei", scale)]] <- NA
+          } else {
+            spei_res <- spei(ts_data, scale = scale, ref.start = ref_start, ref.end = ref_end)
+            combined_sub[[paste0("spei", scale)]] <- as.numeric(spei_res$fitted)
+          }
         }
         
         sim_results[[length(sim_results) + 1]] <- combined_sub
@@ -255,13 +265,13 @@ calculate_spei_from_json <- function(config_file) {
   
   return(df_res)
 }
-# if (!interactive()) {
-#   args <- commandArgs(trailingOnly = TRUE)
-#   if (length(args) > 0) {
-#     config_file <- args[1]
-#     calculate_spei_from_json(config_file)
-#   }
-# }
+if (!interactive()) {
+  args <- commandArgs(trailingOnly = TRUE)
+  if (length(args) > 0) {
+    config_file <- args[1]
+    calculate_spei_from_json(config_file)
+  }
+}
 
-config_file <- '/home/politti/git/speiApp/data/config_nut2.json'
+config_file <- '/home/politti/git/speiApp/data/config_nut2_1_min.json'
 calculate_spei_from_json(config_file)

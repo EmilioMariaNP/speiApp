@@ -75,10 +75,8 @@ if "last_selected_config" not in st.session_state or st.session_state.last_selec
     else:
         st.session_state.current_config = {}
     
-    # Clear all text and widget keys from session state to load new file values
-    for k in list(st.session_state.keys()):
-        if k.startswith("text_") or k.startswith("w_") or k.startswith("expanded_") or k.startswith("browse_path_"):
-            del st.session_state[k]
+    # Increment form version to force all widgets to re-render with new default values
+    st.session_state.form_version = st.session_state.get("form_version", 0) + 1
 
 # Ensure logs state exists
 if "logs" not in st.session_state:
@@ -140,6 +138,7 @@ def local_file_picker(label, current_value, key, is_dir=False, extensions=['.csv
                 
                 if res_path:
                     st.session_state[text_key] = res_path
+                    st.session_state[f"input_widget_{key}"] = res_path
                     st.session_state[expanded_key] = False
                     st.rerun()
             except Exception as e:
@@ -175,6 +174,7 @@ def local_file_picker(label, current_value, key, is_dir=False, extensions=['.csv
                     if st.button("Select Current Folder ✔️", key=f"sel_{key}"):
                         st.session_state[expanded_key] = False
                         st.session_state[text_key] = curr_dir
+                        st.session_state[f"input_widget_{key}"] = curr_dir
                         st.rerun()
                         
             try:
@@ -217,6 +217,7 @@ def local_file_picker(label, current_value, key, is_dir=False, extensions=['.csv
                             chosen_path = os.path.join(curr_dir, selected_file)
                             st.session_state[expanded_key] = False
                             st.session_state[text_key] = chosen_path
+                            st.session_state[f"input_widget_{key}"] = chosen_path
                             st.rerun()
                     else:
                         st.info("No matching files in this directory.")
@@ -231,6 +232,7 @@ categories = list(schema.keys())
 tabs = st.tabs(categories)
 
 edited_values = {}
+form_version = st.session_state.get("form_version", 0)
 
 for tab, category in zip(tabs, categories):
     with tab:
@@ -242,7 +244,7 @@ for tab, category in zip(tabs, categories):
                 active_config_val = local_file_picker(
                     "Active Configuration File (.json)",
                     selected_config_path,
-                    "active_config_path_picker",
+                    f"active_config_path_picker_{form_version}",
                     is_dir=False,
                     extensions=['.json']
                 )
@@ -339,6 +341,8 @@ for tab, category in zip(tabs, categories):
             if current_val is None or current_val == "":
                 current_val = default_val_from_schema
                 
+            widget_key = f"w_{key}_{form_version}"
+            
             with col:
                 # Check for options sub-key first
                 options = field_meta.get("options", None)
@@ -347,7 +351,7 @@ for tab, category in zip(tabs, categories):
                         default_idx = options.index(current_val)
                     except ValueError:
                         default_idx = 0
-                    val = st.selectbox(label, options=options, index=default_idx, help=info, key=f"w_{key}")
+                    val = st.selectbox(label, options=options, index=default_idx, help=info, key=widget_key)
                     edited_values[key] = val
                     
                 # Path category pickers
@@ -355,20 +359,21 @@ for tab, category in zip(tabs, categories):
                     is_dir = (key == "home_dir" or key.endswith("_dir") or "folder" in label.lower())
                     is_csv = (key.endswith("_csv") or "csv" in label.lower())
                     
+                    picker_key = f"picker_{key}_{form_version}"
                     if is_dir:
-                        val = local_file_picker(label, current_val, key, is_dir=True)
+                        val = local_file_picker(label, current_val, picker_key, is_dir=True)
                         edited_values[key] = val
                     elif is_csv:
-                        val = local_file_picker(label, current_val, key, is_dir=False, extensions=['.csv'])
+                        val = local_file_picker(label, current_val, picker_key, is_dir=False, extensions=['.csv'])
                         edited_values[key] = val
                     else:
-                        val = st.text_input(label, value=str(current_val) if current_val is not None else "", help=info, key=f"w_{key}")
+                        val = st.text_input(label, value=str(current_val) if current_val is not None else "", help=info, key=widget_key)
                         edited_values[key] = val
                         
                 elif field_type == "bool":
                     # Checkbox
                     default_val = bool(current_val) if current_val is not None else False
-                    val = st.checkbox(label, value=default_val, help=info, key=f"w_{key}")
+                    val = st.checkbox(label, value=default_val, help=info, key=widget_key)
                     edited_values[key] = val
                     
                 elif field_type == "integer":
@@ -380,14 +385,14 @@ for tab, category in zip(tabs, categories):
                         default_val = 0
                         
                     if is_year:
-                        val = st.number_input(label, value=default_val, step=1, format="%d", help=info, key=f"w_{key}")
+                        val = st.number_input(label, value=default_val, step=1, format="%d", help=info, key=widget_key)
                         edited_values[key] = int(val)
                     else:
                         try:
                             default_val_num = float(current_val) if current_val is not None else 0.0
                         except (ValueError, TypeError):
                             default_val_num = 0.0
-                        val = st.number_input(label, value=default_val_num, help=info, key=f"w_{key}")
+                        val = st.number_input(label, value=default_val_num, help=info, key=widget_key)
                         if current_val is not None and isinstance(current_val, int):
                             edited_values[key] = int(val)
                         else:
@@ -401,7 +406,7 @@ for tab, category in zip(tabs, categories):
                         default_val = str(current_val)
                     else:
                         default_val = ""
-                    val_str = st.text_input(label, value=default_val, help=info + " (Comma-separated integers)", key=f"w_{key}")
+                    val_str = st.text_input(label, value=default_val, help=info + " (Comma-separated integers)", key=widget_key)
                     
                     # Parse back to list
                     parsed_list = []
@@ -420,7 +425,7 @@ for tab, category in zip(tabs, categories):
                         default_val = str(current_val)
                     else:
                         default_val = ""
-                    val_str = st.text_input(label, value=default_val, help=info + " (Comma-separated strings)", key=f"w_{key}")
+                    val_str = st.text_input(label, value=default_val, help=info + " (Comma-separated strings)", key=widget_key)
                     
                     # Parse back to list
                     parsed_list = []
@@ -430,7 +435,7 @@ for tab, category in zip(tabs, categories):
                     
                 else: # string or fallback
                     default_val = str(current_val) if current_val is not None else ""
-                    val = st.text_input(label, value=default_val, help=info, key=f"w_{key}")
+                    val = st.text_input(label, value=default_val, help=info, key=widget_key)
                     edited_values[key] = val
 
 def save_current_config(edited_vals, selected_path):

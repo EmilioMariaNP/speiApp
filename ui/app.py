@@ -7,6 +7,7 @@ from processing.copula_aggregation import main_copula_aggregation
 from processing.copula_analysis_nn_station import main_copula_nn_station
 from processing.events_count import events_count_main
 from processing.gcms_eval import main_gcms_eval
+from processing.plots import plot_spei_dotplots, plot_spei_maps
 from utils.utils import load_config
 
 
@@ -71,6 +72,12 @@ if __name__ == "__main__":
         config_dict['copula_analysis_aggregation_csv'] = os.path.join(
             home_dir, config_dict['copula_analysis_aggregation_csv'])
 
+        map_plots_dir = config_dict.get('map_plots_dir', 'plots')
+        map_plots_dir = os.path.join(home_dir, map_plots_dir)
+        if not os.path.exists(map_plots_dir):
+            os.makedirs(map_plots_dir)
+        config_dict['map_plots_dir'] = map_plots_dir
+
         growth_season_start = int(config_dict.get('growth_season_start', 1))
         growth_season_end = int(config_dict.get('growth_season_end', 12))
         growth_season_months = list(range(growth_season_start, growth_season_end + 1))
@@ -89,6 +96,9 @@ if __name__ == "__main__":
                 main_copula_nn_station(config_dict)
             if config_dict.get('execute_copula_aggregation', False):
                 main_copula_aggregation(config_dict)
+            if config_dict.get("execute_map_plots", False):
+                plot_spei_maps(config_dict)
+
 
 
         except Exception as e:

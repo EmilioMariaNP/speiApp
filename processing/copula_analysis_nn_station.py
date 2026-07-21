@@ -569,6 +569,7 @@ def analyze_univariate_return_periods(df,
 
 
 def main_copula_nn_station(config):
+    logger.info('Starting non-stationary copula analysis...')
 
     ref_start_year = config["ref_start_year"]
     ref_end_year = config["ref_end_year"]
@@ -595,11 +596,6 @@ def main_copula_nn_station(config):
     events_csv = config["dry_events_csv"]
     copula_csv = config.get('copula_analysis_csv', None)
     gcm_eval_csv = config.get('gcm_eval_csv', None)
-    return_periods_csv = config["return_periods_csv"]
-
-
-    logger.info('Starting non-stationary copula analysis...')
-
 
     df_events = load_dataframe(events_csv)
     gcm_eval_df = load_dataframe(gcm_eval_csv)
@@ -616,7 +612,7 @@ def main_copula_nn_station(config):
 
     gcms = df_events["gcm"].unique().tolist()
 
-    if analysis_regions is not None or len(analysis_regions) == 0:
+    if analysis_regions is None or len(analysis_regions) == 0:
         spatial_units = df_events[spatial_unit_col].unique().tolist()
     else:
         spatial_units = analysis_regions  # limits the analysis to a subset of regions
