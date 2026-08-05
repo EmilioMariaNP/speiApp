@@ -55,9 +55,7 @@
         "SSP5-8.5"
     ],
     "return_periods_plots": [
-        5,
-        30,
-        50
+        5
     ],
     "plot_spatial_units": []
 }

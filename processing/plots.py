@@ -79,15 +79,16 @@ def get_color(val):
     if val <= 1: return 'blue'
     elif val <= 2: return 'yellow'
     elif val <= 4: return 'orange'
-    elif val <= 6: return 'red'
-    else: return 'brown'
+    elif val <= 7: return 'red'
+    else: return 'darkred'
 
 # Define the alpha mapping function based on the 'cv' column (used as ci)
 def get_alpha(val):
     if val <= 0.2: return 1.0
     elif val <= 0.5: return 0.7
     elif val <= 0.7: return 0.5
-    else: return 0.3
+    elif val <= 0.9: return 0.3
+    else: return 0.2
 
 def plot_scenario_ri(gdf, df_likelihood, spei_scale, return_interval, sup_title, spatial_unit_col, scenarios_order, file_path=None):
 
@@ -146,19 +147,37 @@ def plot_scenario_ri(gdf, df_likelihood, spei_scale, return_interval, sup_title,
       if col == 1:
           ax.set_yticklabels([])
 
-  # Create Legend
-  legend_elements = [
-      mpatches.Patch(color='blue', label='mean <= 1'),
-      mpatches.Patch(color='yellow', label='1 < mean <= 2'),
-      mpatches.Patch(color='orange', label='2 < mean <= 4'),
-      mpatches.Patch(color='red', label='4 < mean <= 6'),
-      mpatches.Patch(color='brown', label='6 < mean')
-  ]
-  fig.legend(handles=legend_elements, loc='lower center', ncol=5, title="Likelihood Change Scale", fontsize=12)
+  # Create 2D Bivariate Color-Alpha Matrix Legend
+  # Adjust layout first to reserve bottom space for the 2D legend table
+  plt.subplots_adjust(hspace=-0.005, wspace=0.1, top=0.9, bottom=0.18, left=0.05, right=0.95)
+
+  # Dedicated legend axes at bottom center [left, bottom, width, height]
+  ax_leg = fig.add_axes([0.32, 0.02, 0.36, 0.12])
+
+  colors_list = ['blue', 'yellow', 'orange', 'red', 'darkred']
+  alphas_list = [1.0, 0.7, 0.5, 0.3, 0.2]
+
+  for i, col_val in enumerate(colors_list):
+      for j, alpha_val in enumerate(alphas_list):
+          rect = mpatches.Rectangle((j, i), 1, 1, facecolor=col_val, alpha=alpha_val, edgecolor='black', linewidth=0.5)
+          ax_leg.add_patch(rect)
+
+  ax_leg.set_xlim(0, len(alphas_list))
+  ax_leg.set_ylim(0, len(colors_list))
+
+  # Configure tick marks in the center of each cell
+  ax_leg.set_xticks([0.5, 1.5, 2.5, 3.5, 4.5])
+  ax_leg.set_xticklabels(['<= 0.2', '0.2 - 0.5', '0.5 - 0.7', '0.7 - 0.9', '> 0.9'], fontsize=10)
+  ax_leg.set_yticks([0.5, 1.5, 2.5, 3.5, 4.5])
+  ax_leg.set_yticklabels(['<= 1', '1 - 2', '2 - 4', '4 - 7', '> 7'], fontsize=10)
+
+  ax_leg.set_xlabel("Coefficient of Variation", fontsize=12, fontweight='bold', labelpad=1)
+  ax_leg.set_ylabel("Likelihood\n Change", fontsize=12, fontweight='bold', labelpad=6)
+  ax_leg.tick_params(length=0)
+  ax_leg.grid(False)
 
   plt.suptitle(sup_title, fontsize=20, y=0.95)
-  # Adjust layout and reduce vertical space between rows (hspace)
-  plt.subplots_adjust(hspace=-0.005, wspace=0.1, top=0.9, bottom=0.1, left=0.05, right=0.95)
+  
   
   if file_path is not None:
       plt.savefig(file_path, bbox_inches='tight')
