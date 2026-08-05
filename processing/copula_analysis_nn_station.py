@@ -53,17 +53,20 @@ def select_best_copula(df, columns=None):
     return cop, None, cop.family.name
 
 
-def select_best_drought_distribution(df, column_name):
+def select_best_drought_distribution(df, column_name, is_reference_period=False):
     """
-    Fits non-stationary marginal distributions where parameters evolve with time.
-    Returns the best fit among: Generalised Extreme Value (GEV), Generalised Pareto Distribution (GPD),
-    Time Varying Gamma Distribution, log normal.
+    Fits marginal distributions for drought variables.
+    For the reference period (is_reference_period=True), both stationary and non-stationary models compete via BIC.
+    For projection periods (is_reference_period=False), strictly non-stationary time-varying models are evaluated.
+    Evaluates: GEV, GPD, Gamma, Lognorm, Weibull, Pearson Type III, and Exponential.
     """
     import warnings
     warnings.filterwarnings('ignore', category=RuntimeWarning)
     
-    data = df[column_name].dropna().values
-    years = df.loc[df[column_name].notna(), 'start_year'].values
+    # Sanitize data: remove non-finite entries (np.inf, -np.inf, np.nan) and non-positive numerical artifacts
+    valid_mask = np.isfinite(df[column_name]) & (df[column_name] > 0) & np.isfinite(df['start_year'])
+    data = df.loc[valid_mask, column_name].values
+    years = df.loc[valid_mask, 'start_year'].values
 
     if len(data) == 0:
         return "norm", {"loc": 0, "scale": 1}, None, -1
@@ -75,95 +78,182 @@ def select_best_drought_distribution(df, column_name):
         data = np.abs(data)
 
     results = {}
-    dist_filter = globals().get('default_distribution', None)
+    param_map = {
+        'genextreme': ['c', 'loc', 'scale'],
+        'genpareto': ['c', 'loc', 'scale'],
+        'gamma': ['a', 'loc', 'scale'],
+        'lognorm': ['s', 'loc', 'scale'],
+        'weibull_min': ['c', 'loc', 'scale'],
+        'pearson3': ['skew', 'loc', 'scale'],
+        'expon': ['loc', 'scale'],
+        'norm': ['loc', 'scale']
+    }
 
-    # 1. Non-stationary GEV (genextreme) - loc varies with time
-    if dist_filter is None or dist_filter == 'genextreme':
-        def nll_gev(params):
-            c, loc0, loc1, scale = params
-            loc = loc0 + loc1 * t
-            ll = np.sum(stats.genextreme.logpdf(data, c, loc=loc, scale=scale))
-            return -ll if np.isfinite(ll) else 1e10
+    # --- 1. Stationary fits (Only permitted for Reference Period) ---
+    if is_reference_period:
+        for d_name in ['genextreme', 'genpareto', 'gamma', 'lognorm', 'weibull_min', 'pearson3', 'expon']:
+            try:
+                dist_obj = getattr(st, d_name)
+                if d_name in ['gamma', 'lognorm', 'weibull_min', 'expon']:
+                    params = dist_obj.fit(data, floc=0)
+                else:
+                    params = dist_obj.fit(data)
 
-        try:
-            c_init, loc_init, scale_init = stats.genextreme.fit(data)
-            c_init = np.clip(c_init, -0.5, 0.5)
-        except Exception:
-            c_init, loc_init, scale_init = -0.1, np.mean(data), np.std(data)
+                ll = np.sum(dist_obj.logpdf(data, *params))
+                if np.isfinite(ll):
+                    k = len(params) - (1 if d_name in ['gamma', 'lognorm', 'weibull_min', 'expon'] else 0)
+                    bic = -2 * ll + k * np.log(len(data))
+                    param_names = param_map[d_name]
+                    param_dict = dict(zip(param_names, params))
+                    if 'scale' in param_dict and not isinstance(param_dict['scale'], np.ndarray):
+                        param_dict['scale'] = np.full_like(t, param_dict['scale'], dtype=float)
+                    results[f"{d_name}_stat"] = {'bic': bic, 'params': param_dict, 'dist': d_name, 'type': 'stat'}
+            except Exception as e:
+                logger.debug(f"Stationary fit failed for {d_name}: {e}")
 
-        bounds_gev = [(-0.5, 0.5), (None, None), (None, None), (0.001, None)]
-        res_gev = optimize.minimize(nll_gev, [c_init, loc_init, 0.0, max(scale_init, 0.001)], method='L-BFGS-B',
-                                    bounds=bounds_gev)
-        if res_gev.success:
-            bic = 2 * res_gev.fun + 4 * np.log(len(data))
-            results['genextreme'] = {'bic': bic, 'params': res_gev.x}
+    # --- 2. Non-Stationary fits ---
+    # 2.1 Non-stationary GEV (genextreme) - loc varies with time
+    def nll_gev(params):
+        c, loc0, loc1, scale = params
+        loc = loc0 + loc1 * t
+        ll = np.sum(stats.genextreme.logpdf(data, c, loc=loc, scale=scale))
+        return -ll if np.isfinite(ll) else 1e10
 
-    # 2. Non-stationary GPD (genpareto) - scale varies with time
-    if dist_filter is None or dist_filter == 'genpareto':
-        def nll_gpd(params):
-            c, loc, scale0, scale1_factor = params
-            scale = scale0 * (1 + scale1_factor * t)
-            ll = np.sum(stats.genpareto.logpdf(data, c, loc=loc, scale=scale))
-            return -ll if np.isfinite(ll) else 1e10
+    try:
+        c_init, loc_init, scale_init = stats.genextreme.fit(data)
+        c_init = np.clip(c_init, -0.5, 0.5)
+    except Exception:
+        c_init, loc_init, scale_init = -0.1, np.mean(data), np.std(data)
 
-        try:
-            c_init, loc_init, scale_init = stats.genpareto.fit(data)
-            c_init = np.clip(c_init, -0.5, 0.5)
-        except Exception:
-            c_init, loc_init, scale_init = 0.1, 0.0, np.std(data)
+    bounds_gev = [(-0.5, 0.5), (None, None), (None, None), (0.001, None)]
+    res_gev = optimize.minimize(nll_gev, [c_init, loc_init, 0.0, max(scale_init, 0.001)], method='L-BFGS-B', bounds=bounds_gev)
+    if res_gev.success:
+        bic = 2 * res_gev.fun + 4 * np.log(len(data))
+        c, loc0, loc1, scale = res_gev.x
+        results['genextreme_nn'] = {'bic': bic, 'params': {'c': c, 'loc': loc0 + loc1 * t, 'scale': scale}, 'dist': 'genextreme', 'type': 'nn'}
 
-        bounds_gpd = [(-0.5, 0.5), (None, None), (0.001, None), (-0.99, 10.0)]
-        res_gpd = optimize.minimize(nll_gpd, [c_init, loc_init, max(scale_init, 0.001), 0.0], method='L-BFGS-B',
-                                    bounds=bounds_gpd)
-        if res_gpd.success:
-            bic = 2 * res_gpd.fun + 4 * np.log(len(data))
-            results['genpareto'] = {'bic': bic, 'params': res_gpd.x}
+    # 2.2 Non-stationary GPD (genpareto) - scale varies with time (loc=0 fixed to prevent threshold singularity)
+    def nll_gpd(params):
+        c, scale0, scale1_factor = params
+        scale = scale0 * (1 + scale1_factor * t)
+        ll = np.sum(stats.genpareto.logpdf(data, c, loc=0.0, scale=scale))
+        return -ll if np.isfinite(ll) else 1e10
 
-    # 3. Non-stationary Gamma (gamma) - scale varies with time
-    if dist_filter is None or dist_filter == 'gamma':
-        def nll_gamma(params):
-            a, loc, scale0, scale1_factor = params
-            scale = scale0 * (1 + scale1_factor * t)
-            ll = np.sum(stats.gamma.logpdf(data, a, loc=loc, scale=scale))
-            return -ll if np.isfinite(ll) else 1e10
+    try:
+        c_init, _, scale_init = stats.genpareto.fit(data, floc=0)
+        c_init = np.clip(c_init, -0.5, 0.5)
+    except Exception:
+        c_init, scale_init = 0.1, np.std(data)
 
-        try:
-            a_init, loc_init, scale_init = stats.gamma.fit(data, floc=0)
-            a_init = np.clip(a_init, 0.01, 50)
-        except Exception:
-            a_init, loc_init, scale_init = 1.0, 0.0, np.mean(data)
+    bounds_gpd = [(-0.5, 0.5), (0.001, None), (-0.99, 10.0)]
+    res_gpd = optimize.minimize(nll_gpd, [c_init, max(scale_init, 0.001), 0.0], method='L-BFGS-B', bounds=bounds_gpd)
+    if res_gpd.success:
+        bic = 2 * res_gpd.fun + 3 * np.log(len(data))
+        c, scale0, scale1_factor = res_gpd.x
+        results['genpareto_nn'] = {'bic': bic, 'params': {'c': c, 'loc': 0.0, 'scale': scale0 * (1 + scale1_factor * t)}, 'dist': 'genpareto', 'type': 'nn'}
 
-        bounds_gamma = [(0.01, 50), (None, None), (0.001, None), (-0.99, 10.0)]
-        res_gamma = optimize.minimize(nll_gamma, [a_init, loc_init, max(scale_init, 0.001), 0.0], method='L-BFGS-B',
-                                      bounds=bounds_gamma)
-        if res_gamma.success:
-            bic = 2 * res_gamma.fun + 4 * np.log(len(data))
-            results['gamma'] = {'bic': bic, 'params': res_gamma.x}
+    # 2.3 Non-stationary Gamma (gamma) - scale varies with time (loc=0 fixed to prevent threshold singularity)
+    def nll_gamma(params):
+        a, scale0, scale1_factor = params
+        scale = scale0 * (1 + scale1_factor * t)
+        ll = np.sum(stats.gamma.logpdf(data, a, loc=0.0, scale=scale))
+        return -ll if np.isfinite(ll) else 1e10
 
-    # 4. Non-stationary Lognormal (lognorm) - scale varies with time
-    if dist_filter is None or dist_filter == 'lognorm':
-        def nll_lognorm(params):
-            s, loc, scale0, scale1_factor = params
-            scale = scale0 * (1 + scale1_factor * t)
-            ll = np.sum(stats.lognorm.logpdf(data, s, loc=loc, scale=scale))
-            return -ll if np.isfinite(ll) else 1e10
+    try:
+        a_init, _, scale_init = stats.gamma.fit(data, floc=0)
+        a_init = np.clip(a_init, 0.01, 50)
+    except Exception:
+        a_init, scale_init = 1.0, np.mean(data)
 
-        try:
-            s_init, loc_init, scale_init = stats.lognorm.fit(data, floc=0)
-            s_init = np.clip(s_init, 0.01, 3.0)
-        except Exception:
-            s_init, loc_init, scale_init = 1.0, 0.0, np.mean(data)
+    bounds_gamma = [(0.01, 50), (0.001, None), (-0.99, 10.0)]
+    res_gamma = optimize.minimize(nll_gamma, [a_init, max(scale_init, 0.001), 0.0], method='L-BFGS-B', bounds=bounds_gamma)
+    if res_gamma.success:
+        bic = 2 * res_gamma.fun + 3 * np.log(len(data))
+        a, scale0, scale1_factor = res_gamma.x
+        results['gamma_nn'] = {'bic': bic, 'params': {'a': a, 'loc': 0.0, 'scale': scale0 * (1 + scale1_factor * t)}, 'dist': 'gamma', 'type': 'nn'}
 
-        bounds_lognorm = [(0.01, 3.0), (None, None), (0.001, None), (-0.99, 10.0)]
-        res_lognorm = optimize.minimize(nll_lognorm, [s_init, loc_init, max(scale_init, 0.001), 0.0], method='L-BFGS-B',
-                                        bounds=bounds_lognorm)
-        if res_lognorm.success:
-            bic = 2 * res_lognorm.fun + 4 * np.log(len(data))
-            results['lognorm'] = {'bic': bic, 'params': res_lognorm.x}
+    # 2.4 Non-stationary Lognormal (lognorm) - scale varies with time (loc=0 fixed to prevent threshold singularity)
+    def nll_lognorm(params):
+        s, scale0, scale1_factor = params
+        scale = scale0 * (1 + scale1_factor * t)
+        ll = np.sum(stats.lognorm.logpdf(data, s, loc=0.0, scale=scale))
+        return -ll if np.isfinite(ll) else 1e10
 
-    # If all fail, fallback to a standard fit
+    try:
+        s_init, _, scale_init = stats.lognorm.fit(data, floc=0)
+        s_init = np.clip(s_init, 0.01, 3.0)
+    except Exception:
+        s_init, scale_init = 1.0, np.mean(data)
+
+    bounds_lognorm = [(0.01, 3.0), (0.001, None), (-0.99, 10.0)]
+    res_lognorm = optimize.minimize(nll_lognorm, [s_init, max(scale_init, 0.001), 0.0], method='L-BFGS-B', bounds=bounds_lognorm)
+    if res_lognorm.success:
+        bic = 2 * res_lognorm.fun + 3 * np.log(len(data))
+        s, scale0, scale1_factor = res_lognorm.x
+        results['lognorm_nn'] = {'bic': bic, 'params': {'s': s, 'loc': 0.0, 'scale': scale0 * (1 + scale1_factor * t)}, 'dist': 'lognorm', 'type': 'nn'}
+
+    # 2.5 Non-stationary Weibull (weibull_min) - scale varies with time (loc=0 fixed to prevent threshold singularity)
+    def nll_weibull(params):
+        c, scale0, scale1_factor = params
+        scale = scale0 * (1 + scale1_factor * t)
+        ll = np.sum(stats.weibull_min.logpdf(data, c, loc=0.0, scale=scale))
+        return -ll if np.isfinite(ll) else 1e10
+
+    try:
+        c_init, _, scale_init = stats.weibull_min.fit(data, floc=0)
+        c_init = np.clip(c_init, 0.01, 50)
+    except Exception:
+        c_init, scale_init = 1.0, np.mean(data)
+
+    bounds_weibull = [(0.01, 50), (0.001, None), (-0.99, 10.0)]
+    res_weibull = optimize.minimize(nll_weibull, [c_init, max(scale_init, 0.001), 0.0], method='L-BFGS-B', bounds=bounds_weibull)
+    if res_weibull.success:
+        bic = 2 * res_weibull.fun + 3 * np.log(len(data))
+        c, scale0, scale1_factor = res_weibull.x
+        results['weibull_min_nn'] = {'bic': bic, 'params': {'c': c, 'loc': 0.0, 'scale': scale0 * (1 + scale1_factor * t)}, 'dist': 'weibull_min', 'type': 'nn'}
+
+    # 2.6 Non-stationary Pearson Type III (pearson3) - scale varies with time
+    def nll_pearson3(params):
+        skew, loc, scale0, scale1_factor = params
+        scale = scale0 * (1 + scale1_factor * t)
+        ll = np.sum(stats.pearson3.logpdf(data, skew, loc=loc, scale=scale))
+        return -ll if np.isfinite(ll) else 1e10
+
+    try:
+        skew_init, loc_init, scale_init = stats.pearson3.fit(data)
+        skew_init = np.clip(skew_init, -3.0, 3.0)
+    except Exception:
+        skew_init, loc_init, scale_init = 0.0, np.mean(data), np.std(data)
+
+    bounds_pearson3 = [(-5.0, 5.0), (None, None), (0.001, None), (-0.99, 10.0)]
+    res_pearson3 = optimize.minimize(nll_pearson3, [skew_init, loc_init, max(scale_init, 0.001), 0.0], method='L-BFGS-B', bounds=bounds_pearson3)
+    if res_pearson3.success:
+        bic = 2 * res_pearson3.fun + 4 * np.log(len(data))
+        skew, loc, scale0, scale1_factor = res_pearson3.x
+        results['pearson3_nn'] = {'bic': bic, 'params': {'skew': skew, 'loc': loc, 'scale': scale0 * (1 + scale1_factor * t)}, 'dist': 'pearson3', 'type': 'nn'}
+
+    # 2.7 Non-stationary Exponential (expon) - scale varies with time (loc=0 fixed to prevent threshold singularity)
+    def nll_expon(params):
+        scale0, scale1_factor = params
+        scale = scale0 * (1 + scale1_factor * t)
+        ll = np.sum(stats.expon.logpdf(data, loc=0.0, scale=scale))
+        return -ll if np.isfinite(ll) else 1e10
+
+    try:
+        _, scale_init = stats.expon.fit(data, floc=0)
+    except Exception:
+        scale_init = np.mean(data)
+
+    bounds_expon = [(0.001, None), (-0.99, 10.0)]
+    res_expon = optimize.minimize(nll_expon, [max(scale_init, 0.001), 0.0], method='L-BFGS-B', bounds=bounds_expon)
+    if res_expon.success:
+        bic = 2 * res_expon.fun + 2 * np.log(len(data))
+        scale0, scale1_factor = res_expon.x
+        results['expon_nn'] = {'bic': bic, 'params': {'loc': 0.0, 'scale': scale0 * (1 + scale1_factor * t)}, 'dist': 'expon', 'type': 'nn'}
+
+    # If all fail, fallback to a standard stationary gamma fit
     if not results:
-        logger.warning(f"All non-stationary fits failed for {column_name}. Falling back to stationary gamma.")
+        logger.warning(f"All fits failed for {column_name}. Falling back to stationary gamma.")
         try:
             a_init, loc_init, scale_init = stats.gamma.fit(data, floc=0)
         except Exception:
@@ -172,73 +262,86 @@ def select_best_drought_distribution(df, column_name):
         best_params = {'a': a_init, 'loc': loc_init, 'scale': np.full_like(t, scale_init, dtype=float)}
         return best_dist_name, best_params, None, 0
 
-    # Pick the best distribution
-    best_dist_name = min(results, key=lambda k: results[k]['bic'])
-    best_opt_params = results[best_dist_name]['params']
+    # --- 3. GoF Evaluation and Hybrid GoF-BIC Model Selection ---
+    sorted_candidates = sorted(results.keys(), key=lambda k: results[k]['bic'])
+    min_bic = results[sorted_candidates[0]]['bic']
+    
+    cand_eval = {}
+    for key in sorted_candidates:
+        cand = results[key]
+        dist_obj = getattr(st, cand['dist'])
+        params = cand['params']
 
-    # Map the scalar params to arrays using the normalized t
-    if best_dist_name == 'genextreme':
-        c, loc0, loc1, scale = best_opt_params
-        loc_array = loc0 + loc1 * t
-        best_params = {'c': c, 'loc': loc_array, 'scale': scale}
-    elif best_dist_name == 'genpareto':
-        c, loc, scale0, scale1_factor = best_opt_params
-        scale_array = scale0 * (1 + scale1_factor * t)
-        best_params = {'c': c, 'loc': loc, 'scale': scale_array}
-    elif best_dist_name == 'gamma':
-        a, loc, scale0, scale1_factor = best_opt_params
-        scale_array = scale0 * (1 + scale1_factor * t)
-        best_params = {'a': a, 'loc': loc, 'scale': scale_array}
-    elif best_dist_name == 'lognorm':
-        s, loc, scale0, scale1_factor = best_opt_params
-        scale_array = scale0 * (1 + scale1_factor * t)
-        best_params = {'s': s, 'loc': loc, 'scale': scale_array}
+        eval_data = np.copy(data)
+        # Apply deterministic randomized quantile dithering for discrete duration ties
+        if column_name == "duration":
+            rng = np.random.default_rng(seed=42)
+            dither = rng.uniform(-0.49, 0.49, size=len(eval_data))
+            eval_data = eval_data + dither
+            eval_data = np.maximum(eval_data, 0.1)  # Ensure positive domain constraint
 
-    fit_score = 1
+        try:
+            u_t = dist_obj.cdf(eval_data, **params)
+            u_t = np.clip(u_t, 1e-6, 1 - 1e-6)
+            res = st.goodness_of_fit(
+                st.uniform, u_t, known_params={'loc': 0, 'scale': 1}, n_mc_samples=500, statistic='ad'
+            )
+            p_val = res.pvalue if np.isfinite(res.pvalue) else 0.0
+            cand_eval[key] = {'p_val': p_val, 'statistic': res.statistic, 'bic': cand['bic']}
+        except Exception as e:
+            logger.debug(f"GoF evaluation failed for {key}: {e}")
+            cand_eval[key] = {'p_val': 0.0, 'statistic': np.nan, 'bic': cand['bic']}
+
+    # 3-Tier Hierarchical GoF-then-BIC Model Selection
+    # Tier 1: Select model with lowest BIC among those achieving statistical significance (p > 0.05)
+    significant_cands = [k for k in sorted_candidates if cand_eval[k]['p_val'] > 0.05]
+    acceptable_cands = [k for k in sorted_candidates if 0.01 < cand_eval[k]['p_val'] <= 0.05]
+
+    if significant_cands:
+        selected_key = significant_cands[0]
+        if selected_key != sorted_candidates[0]:
+            logger.info(
+                f"Hierarchical Selection (Tier 1): Promoted {selected_key} (p={cand_eval[selected_key]['p_val']:.4f}, BIC={cand_eval[selected_key]['bic']:.2f}) "
+                f"over rejected lowest-BIC model {sorted_candidates[0]} (p={cand_eval[sorted_candidates[0]]['p_val']:.4f}, BIC={cand_eval[sorted_candidates[0]]['bic']:.2f})"
+            )
+    elif acceptable_cands:
+        selected_key = acceptable_cands[0]
+        if selected_key != sorted_candidates[0]:
+            logger.info(
+                f"Hierarchical Selection (Tier 2): Selected acceptable model {selected_key} (p={cand_eval[selected_key]['p_val']:.4f}) "
+                f"over rejected model {sorted_candidates[0]} (p={cand_eval[sorted_candidates[0]]['p_val']:.4f})"
+            )
+    else:
+        # Tier 3: All models failed statistical hypothesis testing (p <= 0.01). Do not force fit; select lowest BIC and log poor fit warning.
+        selected_key = sorted_candidates[0]
+        logger.debug(f"Hierarchical Selection (Tier 3): All models scored p <= 0.01 for {column_name}. Accepting poor fit score without p-hacking.")
+
+    winner = results[selected_key]
+    best_dist_name = winner['dist']
+    best_params = winner['params']
+    p_val = cand_eval[selected_key]['p_val']
+    
     logger.info(
-        f"Best Non-Stationary Distribution for {column_name}: {best_dist_name} (BIC: {results[best_dist_name]['bic']:.2f})")
+        f"Selected distribution for {column_name} ({winner['type']}): {selected_key} (BIC: {winner['bic']:.2f}, GoF p-val: {p_val:.4f})"
+    )
 
-    # 3. Manual Anderson-Darling Check (Optional but Recommended)
-    # This helps confirm if the 'best' distribution actually fits the tails well
-    fit_score = 1 # acceptable fit
-    try:
-        # Get the scipy distribution object
-        dist_obj = getattr(st, best_dist_name)
-        # For non-stationary distributions, we transform the data to uniform(0,1)
-        # using the time-varying parameters (Probability Integral Transform)
-        u_t = dist_obj.cdf(data, **best_params)
-        # Ensure values are within (0, 1) bounds slightly to avoid numerical issues in AD test
-        u_t = np.clip(u_t, 1e-6, 1 - 1e-6)
-
-        logger.info('Running Anderson-Darling test on Uniform-transformed data...')
-        res = st.goodness_of_fit(st.uniform,
-                                 u_t,
-                                 known_params={'loc': 0, 'scale': 1},
-                                 n_mc_samples=500,
-                                 statistic='ad')
-        logger.info(f"GoF Statistic for {best_dist_name} (PIT against Uniform): {res.statistic:.4f}")
-
-        # Interpretation logic
-        is_satisfactory = res.pvalue > 0.05
-        if is_satisfactory:
-            logger.info(f"Fit is statistically significant (p={res.pvalue:.4f})")
-            fit_score = 2 # good fit
-        else:
-            # Check if it's "close enough" for climate work
-            if res.pvalue > 0.01:
-                logger.warning(f"Weak fit (p={res.pvalue:.4f}), but likely acceptable for large GCM sets.")
-            else:
-                logger.warning(f"Poor fit (p={res.pvalue:.4f}). Return periods may be unreliable.")
-                fit_score = 0 # poor fit
-
-    except Exception as e:
-        logger.warning(f"Could not calculate specific GoF: {e}")
+    if p_val > 0.05:
+        logger.info(f"Fit is statistically significant (p={p_val:.4f})")
+        fit_score = 2  # good fit
+    elif p_val > 0.01:
+        logger.warning(f"Weak fit (p={p_val:.4f}), but acceptable for large GCM sets.")
+        fit_score = 1  # acceptable fit
+    else:
+        logger.warning(f"Poor fit (p={p_val:.4f}). Return periods may be unreliable.")
+        fit_score = 0  # poor fit
 
     return best_dist_name, best_params, None, fit_score
 
 
 def run_drought_copula_analysis(events_df, cutoff_year, copula_family="gumbel"):
     events_df = events_df.copy()
+    valid_mask = np.isfinite(events_df['duration']) & (events_df['duration'] > 0) & np.isfinite(events_df['intensity']) & np.isfinite(events_df['start_year'])
+    events_df = events_df[valid_mask].copy()
     events_df["intensity_abs"] = events_df["intensity"].abs()
 
     ref = events_df[events_df["start_year"] < cutoff_year]
@@ -299,8 +402,10 @@ def analyze_return_periods(events_df,
                            proj_start_year,
                            return_periods,
                            copula_family=None):
-    # 1. Prepare Data
+    # 1. Prepare Data and eliminate computational non-finite artifacts (e.g. inf intensities)
     events_df = events_df.copy()
+    valid_mask = np.isfinite(events_df['duration']) & (events_df['duration'] > 0) & np.isfinite(events_df['intensity']) & np.isfinite(events_df['start_year'])
+    events_df = events_df[valid_mask].copy()
     # events_df["intensity_abs"] = events_df["intensity"].abs()
 
     ref_data = events_df[(events_df["start_year"] >= ref_start_year) & (events_df["start_year"] <= ref_end_year)]
@@ -324,10 +429,11 @@ def analyze_return_periods(events_df,
     fit_scores_dict = {}
     for name, data in [("Ref", ref_data), ("Proj", proj_data)]:
         dist_info[name] = {}
+        is_ref = (name == "Ref")
         for col in variables:
             logger.info(f'Fitting marginal distribution for {name} period, {col}..')
             best_dist_name, best_params, _, fit_score = select_best_drought_distribution(
-                data, col
+                data, col, is_reference_period=is_ref
             )  # automatically select the best marginal distribution
             dist_info[name][col] = {"name": best_dist_name, "params": best_params}
             fit_scores_dict[f'{name}_{col}_fit_score'] = fit_score
@@ -505,12 +611,12 @@ def analyze_univariate_return_periods(df,
     # 2. Fit Marginal Distributions
     logger.info(f'Fitting marginal distribution for reference period {column_name}...')
     best_dist_name_ref, best_params_ref, _, ref_fit_score = select_best_drought_distribution(
-        ref_df, column_name
+        ref_df, column_name, is_reference_period=True
     )
 
     logger.info(f'Fitting marginal distribution for projected {column_name}...')
     best_dist_name_proj, best_params_proj, _, proj_fit_score = select_best_drought_distribution(
-        proj_df, column_name
+        proj_df, column_name, is_reference_period=False
     )
 
     dist_ref = getattr(stats, best_dist_name_ref)
@@ -580,7 +686,6 @@ def main_copula_nn_station(config):
     spei_scales = config.get('spei_indices', [3, 12])
 
     copula_family = config.get('copula_family', 'gumbel')
-    default_distribution = config.get('default_distribution', None)  # Set to None to use dynamic distribution selection
     analysis_regions = config.get('spatial_units', [])
     exclude_month_events = config.get('exclude_month_events', True)  # exclude drought events of 1 month length --> create noise and are not necessarily drought events
 

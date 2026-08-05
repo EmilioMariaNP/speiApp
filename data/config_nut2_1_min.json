@@ -5,8 +5,9 @@
     "execute_ks_test": false,
     "execute_count": false,
     "execute_copula": false,
-    "execute_copula_aggregation": true,
+    "execute_copula_aggregation": false,
     "execute_map_plots": true,
+    "strict_aggregation": true,
     "spei_indices": [
         3,
         12
@@ -19,7 +20,8 @@
     "spatial_unit_col": "NUTS",
     "spatial_units": [],
     "spatial_units_bak": [
-        "RS00"
+        "RS00",
+        "DE23"
     ],
     "spei_csv": "nuts_2_spei_1min.csv",
     "dry_events_csv": "drought_counts/dry_events.csv",
@@ -54,7 +56,6 @@
     ],
     "return_periods_plots": [
         5,
-        10,
         30,
         50
     ],

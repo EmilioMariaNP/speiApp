@@ -91,19 +91,21 @@ def main_copula_aggregation(config):
 
     df = load_dataframe(copula_csv)
 
-    # # filter out the rows where at least one fit is not reliable
-    # logger.info('Filtering unrealiable fits...')
-    # n_rows = len(df.index)
-    # df = df[(df['Ref_duration_fit_score'] != 0) &
-    #         (df['Ref_intensity_fit_score'] != 0) &
-    #         (df['Proj_duration_fit_score'] != 0) &
-    #         (df['Proj_intensity_fit_score'] != 0)
-    # ].copy(deep=True)
-    # df['reliability'] = 1 # set to 1 to avoid changing the weighting function TODO: update
-    #
-    # n_rows_filtered = len(df.index)
-    # delta_rows = n_rows - n_rows_filtered
-    # logger.info(f'Original dataframe size: {n_rows}, filtered rows: {n_rows_filtered} ({delta_rows} droppped)')
+    if config.get('strict_aggregation', False): # is strict_aggregation, only fittings acceptable goodness of fit for ref and proj are considered
+
+        # filter out the rows where at least one fit is not reliable
+        logger.info('Filtering unrealiable fits...')
+        n_rows = len(df.index)
+        df = df[(df['Ref_duration_fit_score'] != 0) &
+                (df['Ref_intensity_fit_score'] != 0) &
+                (df['Proj_duration_fit_score'] != 0) &
+                (df['Proj_intensity_fit_score'] != 0)
+        ].copy(deep=True)
+        df['reliability'] = 1 # set to 1 to avoid changing the weighting function TODO: update
+
+        n_rows_filtered = len(df.index)
+        delta_rows = n_rows - n_rows_filtered
+        logger.info(f'Original dataframe size: {n_rows}, filtered rows: {n_rows_filtered} ({delta_rows} droppped)')
 
     # average out the likelihood change from the different GCMS weighted by reliability
 
