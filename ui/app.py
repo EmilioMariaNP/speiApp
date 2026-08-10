@@ -7,7 +7,7 @@ from processing.copula_aggregation import main_copula_aggregation
 from processing.copula_analysis_nn_station import main_copula_nn_station
 from processing.events_count import events_count_main
 from processing.gcms_eval import main_gcms_eval
-from processing.plots import plot_spei_dotplots, plot_spei_maps
+from processing.plots import plot_spei_dotplots, plot_spei_maps, plot_spei_dotplots_by_spatial_group
 from utils.utils import load_config
 
 
@@ -98,6 +98,9 @@ if __name__ == "__main__":
                 main_copula_aggregation(config_dict)
             if config_dict.get("execute_map_plots", False):
                 plot_spei_maps(config_dict)
+            if config_dict.get('execute_dot_plots', False):
+                #plot_spei_dotplots(config_dict)
+                plot_spei_dotplots_by_spatial_group(config_dict)
 
 
 

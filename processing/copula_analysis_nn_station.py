@@ -5,7 +5,6 @@ It means that the probability of a "worst-case" intensity occurring given a "wor
 """
 
 import os
-import warnings
 
 import numpy as np
 from loguru import logger
@@ -13,7 +12,6 @@ from utils.utils import load_config, load_dataframe, save_dataframe
 import pandas as pd
 from scipy import stats
 import pyvinecopulib as pv
-from fitter import Fitter
 import scipy.stats as st
 import scipy.optimize as optimize
 

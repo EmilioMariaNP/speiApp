@@ -38,6 +38,8 @@
     "validation_plots_dir": "",
     "gcm_eval_csv": "validation/gcm_evaluation.csv",
     "copula_analysis_csv": "copula_analysis/copula_analysis.csv",
+    "post_analysis_dir": "post_analysis",
+    "post_analysis_plots_dir": "post_analysis/plots",
     "spei_threshold": -1.0,
     "ref_start_year": 1950,
     "ref_end_year": 2010,

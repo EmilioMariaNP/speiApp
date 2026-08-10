@@ -1,12 +1,14 @@
 {
     "home_dir": "/home/politti/data/Danube_5min/spei_nuts_2_1min/",
     "spatial_units_shapefile": "/home/politti/data/Danube_baselayers/nuts2_esri_danube_simplified.shp",
+    "spatial_units_group_shapefile": "/home/politti/data/Danube_baselayers/danube_nuts2_countries.shp",
     "execute_spei": false,
     "execute_ks_test": false,
     "execute_count": false,
     "execute_copula": false,
     "execute_copula_aggregation": false,
     "execute_map_plots": true,
+    "execute_dot_plots": true,
     "strict_aggregation": true,
     "spei_indices": [
         3,
@@ -18,6 +20,8 @@
     "projections_csv": "water_balance_danube_nuts2_1min.csv",
     "validation_dataset_csv": "water_balance_danube_nuts2_cru_1min.csv",
     "spatial_unit_col": "NUTS",
+    "spatial_unit_group_col": "Country",
+    "spatial_unit_group_col_plot": "ISO2",
     "spatial_units": [],
     "spatial_units_bak": [
         "RS00",
@@ -29,10 +33,12 @@
     "gcm_eval_csv": "validation/gcm_evaluation.csv",
     "copula_analysis_csv": "copula_analysis/nuts_2_copula_analysis.csv",
     "copula_analysis_aggregation_csv": "copula_analysis/copula_analysis_aggregation.csv",
-    "map_plots_dir": "plots",
+    "plots_dir": "plots",
+    "post_analysis_dir": "post_analysis",
+    "post_analysis_plots_dir": "post_analysis/plots",
     "spei_threshold": -1.5,
     "ref_start_year": 1950,
-    "ref_end_year": 2010,
+    "ref_end_year": 2020,
     "proj_start_year": 2030,
     "proj_end_year": 2100,
     "return_periods": [
@@ -55,7 +61,7 @@
         "SSP5-8.5"
     ],
     "return_periods_plots": [
-        5
+        5, 10, 30, 50, 100
     ],
     "plot_spatial_units": []
 }
