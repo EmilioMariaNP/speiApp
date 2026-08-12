@@ -1,4 +1,3 @@
-
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -7,22 +6,22 @@ import geopandas as gpd
 from loguru import logger
 import matplotlib.patches as mpatches
 from matplotlib.ticker import ScalarFormatter
+import matplotlib.patheffects as pe
 import contextily as cx
 import os
 import numpy as np
 
 from utils.utils import load_config
 
-
 # uncertainty classes based on coefficient of variation
 ci_uncert_classes = {0.3: 'low', 0.6: 'med', 0.8: 'high'}
 
 
-def set_context(fig_size = (16,9), contx = 'talk', axes_style = 'darkgrid'):
+def set_context(fig_size=(16, 9), contx='talk', axes_style='darkgrid'):
     sns.set_style("darkgrid")
     sns.axes_style("darkgrid")
     sns.set_context(contx)
-    sns.set_theme(rc={'figure.figsize':fig_size}) #width - height
+    sns.set_theme(rc={'figure.figsize': fig_size})  # width - height
     sns.axes_style(axes_style)
     return 0
 
@@ -30,15 +29,14 @@ def set_context(fig_size = (16,9), contx = 'talk', axes_style = 'darkgrid'):
 set_context()
 
 
-
 def plot_dists(
-    df,
-    fig_title,
-    x_col="water_balance",
-    hue_col="dataset",
-    x_label="Water Balance (m)",
-    out_file = None,
-    show_fig = False
+        df,
+        fig_title,
+        x_col="water_balance",
+        hue_col="dataset",
+        x_label="Water Balance (m)",
+        out_file=None,
+        show_fig=False
 ):
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(12, 5))
 
@@ -66,21 +64,32 @@ def plot_dists(
         plt.savefig(out_file)
 
 
-
 def get_color(val):
-    if val <= 1.5: return 'blue'
-    elif val <= 2: return 'yellow'
-    elif val <= 4: return 'orange'
-    elif val <= 7: return 'red'
-    else: return 'darkred'
+    if val <= 1.5:
+        return 'blue'
+    elif val <= 2:
+        return 'yellow'
+    elif val <= 4:
+        return 'orange'
+    elif val <= 7:
+        return 'red'
+    else:
+        return 'darkred'
+
 
 # Define the alpha mapping function based on the 'cv' column (used as ci)
 def get_alpha(val):
-    if val <= 0.2: return 1.0
-    elif val <= 0.5: return 0.7
-    elif val <= 0.7: return 0.5
-    elif val <= 0.9: return 0.3
-    else: return 0.2
+    if val <= 0.2:
+        return 1.0
+    elif val <= 0.5:
+        return 0.7
+    elif val <= 0.7:
+        return 0.5
+    elif val <= 0.9:
+        return 0.3
+    else:
+        return 0.2
+
 
 def plot_scenario_ri(gdf,
                      df_likelihood,
@@ -92,142 +101,148 @@ def plot_scenario_ri(gdf,
                      file_path=None,
                      spatial_units_group_shapefile=None,
                      spatial_unit_group_col=None):
-
     # Return period	scenario	spei	NUTS	Likelihood_Change	Likelihood_Change_std	Likelihood_Change_median	Likelihood_Change_cv
 
-  # Filter the dataframe for the specific SPEI and RI requested
-  df_geo_filtered = df_likelihood[(df_likelihood['spei'] == spei_scale) &
-                                (df_likelihood['Return period'] == return_interval)
-                                ].copy()
+    # Filter the dataframe for the specific SPEI and RI requested
+    df_geo_filtered = df_likelihood[(df_likelihood['spei'] == spei_scale) &
+                                    (df_likelihood['Return period'] == return_interval)
+                                    ].copy()
 
-  # Merge with the geometry dataframe
-  gdf_plot = gdf.merge(df_geo_filtered, on=spatial_unit_col, how='left')
+    # Merge with the geometry dataframe
+    gdf_plot = gdf.merge(df_geo_filtered, on=spatial_unit_col, how='left')
 
-  # Ensure the GDF is in Web Mercator for contextily
-  gdf_plot = gdf_plot.to_crs(epsg=3857)
+    # Ensure the GDF is in Web Mercator for contextily
+    gdf_plot = gdf_plot.to_crs(epsg=3857)
 
-  # Apply mapping functions
-  gdf_plot['color'] = gdf_plot['Likelihood_Change'].apply(get_color)
-  gdf_plot['alpha'] = gdf_plot['Likelihood_Change_cv'].apply(get_alpha)
+    # Apply mapping functions
+    gdf_plot['color'] = gdf_plot['Likelihood_Change'].apply(get_color)
+    gdf_plot['alpha'] = gdf_plot['Likelihood_Change_cv'].apply(get_alpha)
 
-
-  # Load and prepare group shapefile if present
-  gdf_group = None
-  if spatial_units_group_shapefile is not None:
+    # Load and prepare group shapefile if present
+    gdf_group = None
+    if spatial_units_group_shapefile is not None:
         gdf_group = gpd.read_file(spatial_units_group_shapefile)
 
-  if gdf_group is not None:
-      if spatial_unit_group_col is not None and spatial_unit_group_col in gdf_group.columns:
-          gdf_group = gdf_group.to_crs(gdf_plot.crs)
-      else:
-          gdf_group = None
+    if gdf_group is not None:
+        if spatial_unit_group_col is not None and spatial_unit_group_col in gdf_group.columns:
+            gdf_group = gdf_group.to_crs(gdf_plot.crs)
+        else:
+            gdf_group = None
 
-  # Create the plot
-  fig, axes = plt.subplots(2, 2, figsize=(29, 18))
-  axes_flat = axes.flatten()
+    # Create the plot
+    fig, axes = plt.subplots(2, 2, figsize=(29, 18))
+    axes_flat = axes.flatten()
 
-  for i, scenario in enumerate(scenarios_order):
-      ax = axes_flat[i]
-      row, col = i // 2, i % 2
-      scenario_gdf = gdf_plot[gdf_plot['scenario'] == scenario]
+    for i, scenario in enumerate(scenarios_order):
+        ax = axes_flat[i]
+        row, col = i // 2, i % 2
+        scenario_gdf = gdf_plot[gdf_plot['scenario'] == scenario]
 
-      # Plot each region separately to apply individual alpha values
-      for _, row_data in scenario_gdf.iterrows():
-          gpd.GeoSeries(row_data['geometry']).plot(
-              ax=ax,
-              color=row_data['color'],
-              alpha=row_data['alpha'],
-              edgecolor='black',
-              linewidth=0.5
-          )
-      # Add basemap
-      cx.add_basemap(ax, source=cx.providers.Esri.WorldPhysical)
+        # Plot each region separately to apply individual alpha values
+        for _, row_data in scenario_gdf.iterrows():
+            gpd.GeoSeries(row_data['geometry']).plot(
+                ax=ax,
+                color=row_data['color'],
+                alpha=row_data['alpha'],
+                edgecolor='black',
+                linewidth=0.5
+            )
+        # Add basemap
+        cx.add_basemap(ax, source=cx.providers.Esri.WorldPhysical)
 
-      # Add spatial grouping (e.g. countries) if present and label with group column
-      if gdf_group is not None and spatial_unit_group_col in gdf_group.columns:
-          gdf_group.plot(
-              ax=ax,
-              facecolor='none',
-              edgecolor='black',
-              linewidth=0.8,
-              zorder=10
-          )
+        # Add spatial grouping (e.g. countries) if present and label with group column
+        if gdf_group is not None and spatial_unit_group_col in gdf_group.columns:
+            gdf_group.plot(
+                ax=ax,
+                facecolor='none',
+                edgecolor='black',
+                linewidth=0.8,
+                zorder=10
+            )
 
-          for idx, group_row in gdf_group.iterrows():
-              val = group_row[spatial_unit_group_col]
-              if pd.notna(val):
-                  point = group_row['geometry'].representative_point()
-                  ax.text(
-                      x=point.x,
-                      y=point.y,
-                      s=str(val),
-                      fontsize=20,
-                      weight='bold',
-                      ha='center',
-                      va='center',
-                      color='black',
-                      zorder=11
-                  )
+            for idx, group_row in gdf_group.iterrows():
+                val = group_row[spatial_unit_group_col]
+                if pd.notna(val):
+                    point = group_row['geometry'].representative_point()
+                    ax.text(
+                        x=point.x,
+                        y=point.y,
+                        s=str(val),
+                        fontsize=20,
+                        weight='bold',
+                        ha='center',
+                        va='center',
+                        color='black',
+                        zorder=11,
+                        path_effects=[pe.withStroke(linewidth=4, foreground='white')]
+                    )
 
+        # Add scenario as text to the top-right corner to save space
+        ax.text(0.95, 0.95, scenario,
+                transform=ax.transAxes,
+                fontsize=24,
+                fontweight='bold',
+                ha='right',
+                va='top',
+                path_effects=[pe.withStroke(linewidth=4, foreground='white')])
 
+        # map grid style
+        ax.grid(True, linestyle='--', alpha=0.7)
 
-      # Grid and titles
-      ax.set_title(f'Scenario: {scenario}', fontsize=22, fontweight='bold')
-      ax.grid(True, linestyle='--', alpha=0.6)
+        # Disable exponential notation
+        formatter = ScalarFormatter()
+        formatter.set_scientific(False)
+        formatter.set_useOffset(False)
+        ax.xaxis.set_major_formatter(formatter)
+        ax.yaxis.set_major_formatter(formatter)
 
-      # Disable exponential notation
-      formatter = ScalarFormatter()
-      formatter.set_scientific(False)
-      formatter.set_useOffset(False)
-      ax.xaxis.set_major_formatter(formatter)
-      ax.yaxis.set_major_formatter(formatter)
+        # Remove labels based on row/column position
+        if row == 0:
+            ax.set_xticklabels([])
+        if col == 1:
+            ax.set_yticklabels([])
 
-      # Remove labels based on row/column position
-      if row == 0:
-          ax.set_xticklabels([])
-      if col == 1:
-          ax.set_yticklabels([])
+    # Create 2D Bivariate Color-Alpha Matrix Legend
+    # Adjust layout first to reserve bottom space for the 2D legend table
+    plt.subplots_adjust(hspace=-0.04, wspace=-0.07, top=0.9, bottom=0.25, left=0.05, right=0.95)
 
-  # Create 2D Bivariate Color-Alpha Matrix Legend
-  # Adjust layout first to reserve bottom space for the 2D legend table
-  plt.subplots_adjust(hspace=-0.05, wspace=0.05, top=0.9, bottom=0.2, left=0.05, right=0.95)
+    # Dedicated legend axes at bottom center [left, bottom, width, height]
+    ax_leg = fig.add_axes([0.32, 0.05, 0.36, 0.08])
 
-  # Dedicated legend axes at bottom center [left, bottom, width, height]
-  ax_leg = fig.add_axes([0.32, 0.05, 0.36, 0.08])
+    colors_list = ['blue', 'yellow', 'orange', 'red', 'darkred']
+    alphas_list = [1, 0.7, 0.5, 0.3, 0.2]
 
-  colors_list = ['blue', 'yellow', 'orange', 'red', 'darkred']
-  alphas_list = [1, 0.7, 0.5, 0.3, 0.2]
+    for i, col_val in enumerate(colors_list):
+        for j, alpha_val in enumerate(alphas_list):
+            rect = mpatches.Rectangle((j, i), 1, 1, facecolor=col_val, alpha=alpha_val, edgecolor='black',
+                                      linewidth=0.5)
+            ax_leg.add_patch(rect)
 
-  for i, col_val in enumerate(colors_list):
-      for j, alpha_val in enumerate(alphas_list):
-          rect = mpatches.Rectangle((j, i), 1, 1, facecolor=col_val, alpha=alpha_val, edgecolor='black', linewidth=0.5)
-          ax_leg.add_patch(rect)
+    ax_leg.set_xlim(0, len(alphas_list))
+    ax_leg.set_ylim(0, len(colors_list))
 
-  ax_leg.set_xlim(0, len(alphas_list))
-  ax_leg.set_ylim(0, len(colors_list))
+    # Configure tick marks in the center of each cell
+    ax_leg.set_xticks([0.5, 1.5, 2.5, 3.5, 4.5])
+    ax_leg.set_xticklabels(['<= 0.2', '0.2 - 0.5', '0.5 - 0.7', '0.7 - 0.9', '> 0.9'], fontsize=18)
+    ax_leg.set_yticks([0.5, 1.5, 2.5, 3.5, 4.5])
+    ax_leg.set_yticklabels(['<= 1.5', '1.5 - 2', '2 - 4', '4 - 7', '> 7'], fontsize=18)
 
-  # Configure tick marks in the center of each cell
-  ax_leg.set_xticks([0.5, 1.5, 2.5, 3.5, 4.5])
-  ax_leg.set_xticklabels(['<= 0.2', '0.2 - 0.5', '0.5 - 0.7', '0.7 - 0.9', '> 0.9'], fontsize=16)
-  ax_leg.set_yticks([0.5, 1.5, 2.5, 3.5, 4.5])
-  ax_leg.set_yticklabels(['<= 1.5', '1.5 - 2', '2 - 4', '4 - 7', '> 7'], fontsize=16)
+    ax_leg.set_xlabel("Coefficient of Variation", fontsize=20, fontweight='bold', labelpad=1)
+    ax_leg.set_ylabel("Likelihood\n Change", fontsize=20, fontweight='bold', labelpad=6)
+    ax_leg.tick_params(length=0)
+    ax_leg.grid(False)
 
-  ax_leg.set_xlabel("Coefficient of Variation", fontsize=18, fontweight='bold', labelpad=1)
-  ax_leg.set_ylabel("Likelihood\n Change", fontsize=18, fontweight='bold', labelpad=6)
-  ax_leg.tick_params(length=0)
-  ax_leg.grid(False)
+    plt.suptitle(sup_title, fontsize=24, y=0.95, weight='bold')
+    #plt.show()
 
-  plt.suptitle(sup_title, fontsize=22, y=0.95, weight='bold')
-  
-  
-  if file_path is not None:
-      plt.savefig(file_path, bbox_inches='tight')
-      logger.info(f'{os.path.basename(file_path)} saved.')
-  else:
-      plt.show()
+    if file_path is not None:
+        plt.savefig(file_path, bbox_inches='tight')
+        logger.info(f'{os.path.basename(file_path)} saved.')
+    else:
+        plt.show()
+
 
 def plot_spei_maps(config):
-
     spatial_unit_col = config['spatial_unit_col']
     copula_aggregation_csv = config['copula_analysis_aggregation_csv']
     spatial_units_shapefile = config['spatial_units_shapefile']
@@ -261,11 +276,11 @@ def plot_spei_maps(config):
                              spei_scale=spei_scale,
                              return_interval=ri,
                              sup_title=sup_title,
-                             spatial_unit_col = spatial_unit_col,
-                             scenarios_order = scenarios_order,
+                             spatial_unit_col=spatial_unit_col,
+                             scenarios_order=scenarios_order,
                              file_path=plot_file,
-                             spatial_units_group_shapefile = spatial_units_group_shapefile,
-                             spatial_unit_group_col = spatial_unit_group_col
+                             spatial_units_group_shapefile=spatial_units_group_shapefile,
+                             spatial_unit_group_col=spatial_unit_group_col
                              )
 
 
@@ -287,7 +302,6 @@ def plot_spei_dotplots_by_spatial_group(config):
     if not os.path.exists(plots_dir):
         os.makedirs(plots_dir)
 
-
     df = pd.read_csv(copula_analysis_csv)  # copula results
 
     if spatial_unit_group_col and spatial_unit_group_col in df.columns.tolist():
@@ -301,9 +315,9 @@ def plot_spei_dotplots_by_spatial_group(config):
         df = df[df[spatial_unit_col].isin(plot_spatial_units)]
 
         # convert to %
-        #df['Likelihood_Change'] = round((df['Likelihood_Change'] - 1) * 100, 0)
+        # df['Likelihood_Change'] = round((df['Likelihood_Change'] - 1) * 100, 0)
 
-        df.sort_values(['scenario', spatial_unit_col], inplace = True)
+        df.sort_values(['scenario', spatial_unit_col], inplace=True)
         spatial_unit_groups = df[spatial_unit_group_col].unique().tolist()
 
         for spei_scale in spei_scales:
@@ -313,7 +327,7 @@ def plot_spei_dotplots_by_spatial_group(config):
                 df_filtered = df[(df['spei'] == spei_scale) &
                                  (df['Return period'].isin(return_periods_plots)) &
                                  (df[spatial_unit_group_col] == spatial_unit_group)
-                ]
+                                 ]
 
                 plot_file = f'{spei_scale}_{spatial_unit_group}_spei_drought_change_dot_plot.png'
                 plot_file = os.path.join(plots_dir, plot_file)
@@ -364,7 +378,6 @@ def plot_spei_dotplots_by_spatial_group(config):
 
 
 def plot_spei_dotplots(config):
-
     spatial_unit_col = config['spatial_unit_col']
     copula_analysis_csv = config['copula_analysis_csv']
     return_periods_plots = config['return_periods_plots']
@@ -378,9 +391,7 @@ def plot_spei_dotplots(config):
     if not os.path.exists(plots_dir):
         os.makedirs(plots_dir)
 
-
     df = pd.read_csv(copula_analysis_csv)  # copula results
-
 
     if plot_spatial_units is None or len(plot_spatial_units) == 0:
         plot_spatial_units = df[spatial_unit_col].unique().tolist()
@@ -391,9 +402,9 @@ def plot_spei_dotplots(config):
     df = df[df[spatial_unit_col].isin(plot_spatial_units)]
 
     # convert to %
-    #df['Likelihood_Change'] = round((df['Likelihood_Change'] - 1) * 100, 0)
+    # df['Likelihood_Change'] = round((df['Likelihood_Change'] - 1) * 100, 0)
 
-    df.sort_values(['scenario', spatial_unit_col], inplace = True)
+    df.sort_values(['scenario', spatial_unit_col], inplace=True)
 
     for spei_scale in spei_scales:
         # Filter the DataFrame for the desired SPEI index
@@ -440,9 +451,6 @@ def plot_spei_dotplots(config):
         plt.close()
 
 
-
-
-
 if __name__ == "__main__":
 
     # config_file_name = "config_ecoregions.json"
@@ -450,17 +458,15 @@ if __name__ == "__main__":
     config_file_name = 'config_nut2_1_min.json'
 
     config_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "data",
-            config_file_name
-        )
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "data",
+        config_file_name
+    )
     config_dict = load_config(config_path)
-
 
     # update file paths
     home_dir = config_dict.get("home_dir", None)
     if home_dir:
-
         config_dict["dry_events_count_csv"] = os.path.join(
             home_dir, config_dict["dry_events_count_csv"]
         )
@@ -469,7 +475,8 @@ if __name__ == "__main__":
         )
         config_dict['copula_analysis_csv'] = os.path.join(home_dir, config_dict['copula_analysis_csv'])
         config_dict['spei_csv'] = os.path.join(home_dir, config_dict["spei_csv"])
-        config_dict['copula_analysis_aggregation_csv'] = os.path.join(home_dir, config_dict['copula_analysis_aggregation_csv'])
+        config_dict['copula_analysis_aggregation_csv'] = os.path.join(home_dir,
+                                                                      config_dict['copula_analysis_aggregation_csv'])
 
     spatial_units_shapefile = config_dict.get('spatial_units_shapefile', None)
 
@@ -478,5 +485,5 @@ if __name__ == "__main__":
         if config_dict.get("execute_map_plots", False):
             plot_spei_maps(config_dict)
     if config_dict.get('execute_dot_plots', False):
-        #plot_spei_dotplots(config_dict)
+        # plot_spei_dotplots(config_dict)
         plot_spei_dotplots_by_spatial_group(config_dict)
