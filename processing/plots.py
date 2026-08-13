@@ -100,7 +100,8 @@ def plot_scenario_ri(gdf,
                      scenarios_order,
                      file_path=None,
                      spatial_units_group_shapefile=None,
-                     spatial_unit_group_col=None):
+                     spatial_unit_group_col=None,
+                     plot_aggregation = 'mean'):
     # Return period	scenario	spei	NUTS	Likelihood_Change	Likelihood_Change_std	Likelihood_Change_median	Likelihood_Change_cv
 
     # Filter the dataframe for the specific SPEI and RI requested
@@ -114,9 +115,26 @@ def plot_scenario_ri(gdf,
     # Ensure the GDF is in Web Mercator for contextily
     gdf_plot = gdf_plot.to_crs(epsg=3857)
 
+    plot_col = None
+    plot_spread_col = None
+    if plot_aggregation == 'mean':
+        plot_col = 'Likelihood_Change_mean'
+        plot_spread_col = 'Likelihood_Change_cv'
+        color_label = 'Mean\n Likelihood\n Change'
+        alpha_label = 'Coefficient of Variation'
+    elif plot_aggregation == 'median':
+        plot_col = 'Likelihood_Change_median'
+        plot_spread_col = 'Likelihood_Change_rel_mad'
+        color_label = 'Median\n Likelihood\n Change'
+        alpha_label = 'Median Relative Deviation'
+    else:
+        logger.error(f'{plot_aggregation} option not found. Program will exit.')
+        exit(-1)
+
+
     # Apply mapping functions
-    gdf_plot['color'] = gdf_plot['Likelihood_Change'].apply(get_color)
-    gdf_plot['alpha'] = gdf_plot['Likelihood_Change_cv'].apply(get_alpha)
+    gdf_plot['color'] = gdf_plot[plot_col].apply(get_color)
+    gdf_plot['alpha'] = gdf_plot[plot_spread_col].apply(get_alpha)
 
     # Load and prepare group shapefile if present
     gdf_group = None
@@ -227,8 +245,8 @@ def plot_scenario_ri(gdf,
     ax_leg.set_yticks([0.5, 1.5, 2.5, 3.5, 4.5])
     ax_leg.set_yticklabels(['<= 1.5', '1.5 - 2', '2 - 4', '4 - 7', '> 7'], fontsize=18)
 
-    ax_leg.set_xlabel("Coefficient of Variation", fontsize=20, fontweight='bold', labelpad=1)
-    ax_leg.set_ylabel("Likelihood\n Change", fontsize=20, fontweight='bold', labelpad=6)
+    ax_leg.set_xlabel(alpha_label, fontsize=20, fontweight='bold', labelpad=1)
+    ax_leg.set_ylabel(color_label, fontsize=20, fontweight='bold', labelpad=6)
     ax_leg.tick_params(length=0)
     ax_leg.grid(False)
 
@@ -251,6 +269,7 @@ def plot_spei_maps(config):
     home_dir = config.get('home_dir', '../Outputs')
     spatial_units_group_shapefile = config.get('spatial_units_group_shapefile', None)
     spatial_unit_group_col = config.get('spatial_unit_group_col_plot', None)
+    plot_aggregation = config.get('plot_aggregation', 'mean')
 
     plots_dir = os.path.join(home_dir, plots_dir, 'maps')
     if not os.path.exists(plots_dir):
@@ -268,9 +287,12 @@ def plot_spei_maps(config):
 
     for ri in ri_list:
         for spei_scale in spei_scales:
-            sup_title = f'{ri} Years SPEI {spei_scale} Drought Likelihood Change'
-            plot_file = f'{ri}_years_rp_{spei_scale}spei_drought_likelihood_change.png'
+            sup_title = f'{ri} Years SPEI {spei_scale} Drought {plot_aggregation.title()} Likelihood Change'
+            plot_file = f'{ri}_years_rp_{spei_scale}spei_drought_{plot_aggregation}_likelihood_change.png'
+            plots_dir = os.path.join(plots_dir, plot_aggregation)
+            os.makedirs(plots_dir, exist_ok=True)
             plot_file = os.path.join(plots_dir, plot_file)
+
             plot_scenario_ri(gdf=gdf,
                              df_likelihood=df,
                              spei_scale=spei_scale,
@@ -280,7 +302,8 @@ def plot_spei_maps(config):
                              scenarios_order=scenarios_order,
                              file_path=plot_file,
                              spatial_units_group_shapefile=spatial_units_group_shapefile,
-                             spatial_unit_group_col=spatial_unit_group_col
+                             spatial_unit_group_col=spatial_unit_group_col,
+                             plot_aggregation = plot_aggregation
                              )
 
 

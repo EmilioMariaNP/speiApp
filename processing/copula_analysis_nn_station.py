@@ -737,13 +737,17 @@ def main_copula_nn_station(config):
 
                     # read from the GCM evaluation file if the GCM is fit to model the su
                     gcm_eval = gcm_eval_df[
-                                    (gcm_eval_df["gcm"] == gcm) &
-                                    (gcm_eval_df[spatial_unit_col] == su) &
-                                    (gcm_eval_df['spei'] == spei_col)
-                        ]
+                        (gcm_eval_df["gcm"] == gcm) &
+                        (gcm_eval_df[spatial_unit_col].astype(str) == str(su)) &
+                        (gcm_eval_df['spei'].astype(str).isin([spei_col, str(spei_scale)]))
+                    ]
 
-                    if len(gcm_eval.index) >0:
-                        gcm_is_valid = gcm_eval.iloc[0]['passed']
+                    if len(gcm_eval.index) > 0:
+                        raw_passed = gcm_eval.iloc[0]['passed']
+                        if isinstance(raw_passed, str):
+                            gcm_is_valid = raw_passed.lower() in ['true', '1', 't', 'yes']
+                        else:
+                            gcm_is_valid = bool(raw_passed)
                     else:
                         gcm_is_valid = True
 

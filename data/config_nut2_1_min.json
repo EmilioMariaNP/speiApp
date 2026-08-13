@@ -3,10 +3,10 @@
     "spatial_units_shapefile": "/home/politti/data/Danube_baselayers/nuts2_esri_danube_simplified.shp",
     "spatial_units_group_shapefile": "/home/politti/data/Danube_baselayers/danube_nuts2_countries.shp",
     "execute_spei": false,
-    "execute_ks_test": false,
+    "execute_ks_test": true,
     "execute_count": false,
     "execute_copula": false,
-    "execute_copula_aggregation": false,
+    "execute_copula_aggregation": true,
     "execute_map_plots": true,
     "execute_dot_plots": false,
     "strict_aggregation": true,
@@ -67,5 +67,6 @@
         50,
         100
     ],
-    "plot_spatial_units": []
+    "plot_spatial_units": [],
+    "plot_aggregation": "median"
 }

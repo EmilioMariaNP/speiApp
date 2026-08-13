@@ -122,6 +122,9 @@ def main_copula_aggregation(config):
             std_val = np.nan
             median_val = np.nan
             cv_val = np.nan
+            iqr_val = np.nan
+            mad_val = np.nan
+            rel_mad_val = np.nan
         else:
             w_sum = np.sum(w_valid)
             if w_sum > 0:
@@ -131,18 +134,29 @@ def main_copula_aggregation(config):
 
             std_val = np.std(vals_valid, ddof=1) if len(vals_valid) > 1 else 0.0
             median_val = np.median(vals_valid)
+            iqr_val = np.percentile(vals_valid, 75) - np.percentile(vals_valid, 25)
+            mad_val = np.median(np.abs(vals_valid - median_val))
+
 
             if np.isnan(weighted_mean) or weighted_mean == 0:
                 cv_val = np.nan
             else:
-                cv_val = std_val / weighted_mean
+                cv_val = round(std_val / weighted_mean, 2)
+
+            if np.isnan(median_val) or median_val == 0:
+                rel_mad_val = np.nan
+            else:
+                rel_mad_val = round(mad_val / median_val, 2)
 
         return pd.Series(
             {
-                "Likelihood_Change": weighted_mean,
+                "Likelihood_Change_mean": weighted_mean,
                 "Likelihood_Change_std": std_val,
                 "Likelihood_Change_median": median_val,
                 "Likelihood_Change_cv": cv_val,
+                "Likelihood_Change_iqr": iqr_val,
+                "Likelihood_Change_mad": mad_val,
+                "Likelihood_Change_rel_mad": rel_mad_val
             }
         )
 
@@ -160,10 +174,15 @@ def main_copula_aggregation(config):
         )
 
     df_rp.sort_values(by=[spatial_unit_col, "scenario", 'spei', "Return period"], inplace=True)
-    df_rp["Likelihood_Change"] = round(df_rp["Likelihood_Change"], 1)
+    if "Likelihood_Change" in df_rp.columns:
+        df_rp["Likelihood_Change"] = round(df_rp["Likelihood_Change"], 1)
+    if "Likelihood_Change_mean" in df_rp.columns:
+        df_rp["Likelihood_Change_mean"] = round(df_rp["Likelihood_Change_mean"], 1)
     df_rp["Likelihood_Change_std"] = round(df_rp["Likelihood_Change_std"], 2)
     df_rp["Likelihood_Change_median"] = round(df_rp["Likelihood_Change_median"], 1)
     df_rp["Likelihood_Change_cv"] = round(df_rp["Likelihood_Change_cv"], 2)
+    df_rp["Likelihood_Change_iqr"] = round(df_rp["Likelihood_Change_iqr"], 2)
+    df_rp["Likelihood_Change_mad"] = round(df_rp["Likelihood_Change_mad"], 2)
 
     save_dataframe(df_rp, copula_analysis_aggregation_csv)
 
